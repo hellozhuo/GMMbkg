@@ -267,7 +267,9 @@ void InitValue::getSalFromClusteredBorder(cv::Mat& unaryMap, bool illustrate)
 
 void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, const std::string& pic)
 {
-	cv::Mat img = cv::imread(pic);
+	cv::Mat img0 = cv::imread(pic);
+	cv::Mat img;
+	cv::cvtColor(img0, img, CV_BGR2Lab);
 	cv::Mat segVal1f = cv::Mat::zeros(img.size(), CV_32F);
 	cv::Mat imgBGR3f;
 	img.convertTo(imgBGR3f, CV_32FC3, 1 / 255.0);
@@ -318,37 +320,81 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, const std::string& pic)
 	//return;
 
 	unaryMap = cv::Mat::zeros(1, m_info.numlabels, CV_32F);
+	std::vector<cv::Mat> unaMap(_bGMM.K());
+	for (int i = 0; i < unaMap.size(); i++) unaMap[i] = cv::Mat::zeros(1, m_info.numlabels, CV_32F);
 	
-	std::map<double, int, std::greater<double>> dnIds;
-	for (int i = 0; i < _bGMM.K(); i++)
-	{
-		dnIds.insert(std::make_pair(cmGuass[i].w, i));
-	}
-	double posW[3];
+	//std::map<double, int, std::greater<double>> dnIds;
+	//for (int i = 0; i < _bGMM.K(); i++)
+	//{
+	//	dnIds.insert(std::make_pair(cmGuass[i].w, i));
+	//}
+	double posW[2];
 	double suM(0);
-	auto ite = dnIds.begin();
-	for (int i = 0; i < 3; i++, ite++) suM += cmGuass[ite->second].w;
-	ite = dnIds.begin();
-	for (int i = 0; i < 3; i++, ite++) posW[i] = cmGuass[ite->second].w / suM;
+	//auto ite = dnIds.begin();
+	//for (int i = 0; i < 3; i++, ite++) suM += cmGuass[ite->second].w;
+	//ite = dnIds.begin();
+	//for (int i = 0; i < 2; i++, ite++) posW[i] = cmGuass[ite->second].w;// / suM;
 
 	float dot[3];
-	float* unabuf = unaryMap.ptr<float>(0);
+	//float* unabuf = unaryMap.ptr<float>(0);
 	for (int i = 0; i < m_info.numlabels; i++)
 	{
 		dot[0] = m_info.features[i][0] / 255.0;//B or L
 		dot[1] = m_info.features[i][1] / 255.0;//G or a
 		dot[2] = m_info.features[i][2] / 255.0;//R or b
 
-		suM = 0;
-		ite = dnIds.begin();
-		for (int j = 0; j < 3; j++, ite++)
-		{
-			suM += posW[j] * _bGMM.P(ite->second, dot);
-		}
+		//suM = 0;
+		//ite = dnIds.begin();
+		//for (int j = 0; j < 2; j++, ite++)
+		//{
+		//	suM += posW[j] * _bGMM.P(ite->second, dot);
+		//}
 
-		*(unabuf + i) = suM;
+		//*(unabuf + i) = 1-suM;
+		for (int j = 0; j < _bGMM.K(); j++)
+		{
+			unaMap[j].at<float>(i) = _bGMM.P(j, dot);
+		}
+	}
+
+	for (int i = 0; i < unaMap.size(); i++)
+	{
+		//unaMap[i] = 1 - unaMap[i];
+		cv::normalize(unaMap[i], unaMap[i], 0.0, 1.0, NORM_MINMAX);
+		unaMap[i] = 1 - unaMap[i];
+	}
+
+	//unatotal = cv::Mat::zeros(1, m_info.numlabels, CV_32F);
+	for (int i = 0; i < unaMap.size(); i++)
+	{
+		cv::add(unaMap[i] * (cmGuass[i].w), unaryMap, unaryMap);
 	}
 	cv::normalize(unaryMap, unaryMap, 0.0, 1.0, NORM_MINMAX);
-	unaryMap = 1 - unaryMap;
+	//cv::normalize(unaryMap, unaryMap, 0.0, 1.0, NORM_MINMAX);
+	//unaryMap = 1 - unaryMap;
+
+	//illustrate each map relative to each cluster
+	//std::vector<cv::Mat> illu(unaMap.size());
+	//cv::Mat illtotal(img.size(), CV_32F);
+	//for (int i = 0; i < unaMap.size(); i++) illu[i] = cv::Mat(img.size(), CV_32F);
+	//for (int i = 0; i < m_info.numlabels; i++)
+	//{
+	//	for (auto ite = m_info.sps[i].begin(); ite < m_info.sps[i].end(); ite++)
+	//	{
+	//		//for (int j = 0; j < illu.size(); j++)
+	//		//{
+	//		//	illu[j].at<float>((*ite).y, (*ite).x) = unaMap[j].at<float>(i);
+	//		//}
+	//		illtotal.at<float>((*ite).y, (*ite).x) = unaryMap.at<float>(i);
+	//	}
+	//}
+	//cv::imshow("original", img0);
+	////for (int i = 0; i < illu.size(); i++)
+	////{
+	////	cv::imshow("illu" + std::to_string(i), illu[i]);
+	////}
+	//cv::imshow("illutotal", illtotal);
+	//cv::waitKey(0);
+
 	return;
 }

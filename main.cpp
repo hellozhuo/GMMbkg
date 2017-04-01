@@ -16,69 +16,80 @@
 int main()//1
 {
 	while (1){
-		InitValue initval;
-		//_w1, _w2, _w3, _alpha, _beta, _gama, _mu
-		//appearance: w1 alpha beta , combine color(alpha) and location(beta)
-		//location smoothness: w2 gama
-		//color similarity: w3 mu	
-		FineValue fineval(3, 1, 0.5, 40, 63, 6, 43, 2);//6,10,2,20,33,3,43
-		cv::Mat unaryMap;
-		std::string jpgname;
-		std::cout << "\nplease input jpg number" << std::endl;
-		std::cin >> jpgname;
-		if (jpgname == "q") break;
-		//std::string jpgname = "137";
-		string pic = "..\\..\\MSRA10K_Imgs_GT\\Imgs\\" + jpgname + ".jpg";
-		initval.GetBgvalue(unaryMap, pic);
-		//return 0;
+	InitValue initval;
+	//_w1, _w2, _w3, _alpha, _beta, _gama, _mu
+	//appearance: w1 alpha beta , combine color(alpha) and location(beta)
+	//location smoothness: w2 gama
+	//color similarity: w3 mu	
+	FineValue fineval(0, 0, 3, 40, 63, 6, 43, 2);//6,10,2,20,33,3,43
+	cv::Mat unaryMap;
+	std::string jpgname;
+	std::cout << "\nplease input jpg number" << std::endl;
+	std::cin >> jpgname;
+	if (jpgname == "q") break;
+	//std::string jpgname = "137";
+	//string pic = "E:\\lab\\C_C++\\semantic-segmentation\\salient\\images\\" + jpgname + ".jpg";
+	string pic = "..\\..\\MSRA10K_Imgs_GT\\Imgs\\" + jpgname + ".jpg";
+	initval.GetBgvalue(unaryMap, pic);
+	//continue;
 
-		//////////////////////////////////////////////////////////////////////////
-		//double uMean = cv::mean(unaryMap)[0];
-		////double uMin, uMax;
-		////cv::minMaxLoc(unaryMap, &uMin, &uMax);
+	//////////////////////////////////////////////////////////////////////////
+	//double uMean = cv::mean(unaryMap)[0];
+	////double uMin, uMax;
+	////cv::minMaxLoc(unaryMap, &uMin, &uMax);
 
-		//double a1 = uMean;// *2.0 / 3.0;//b1=1.0
-		//double b2 = 1 - uMean / 5.0;
-		//double a2 = (a1 + 1 - uMean / 3.0) / 2.0;
-		//double tp = (b2 - a2) / (1 - uMean);
-		//cv::Mat una2;
-		//cv::Mat msk = unaryMap > a1;
-		//cv::Mat msk2 = unaryMap <= a1;
-		//cv::subtract(unaryMap,a1,una2,msk);
-		//cv::subtract(una2, una2, una2, msk2);
-		//una2 = una2*tp;
-		//cv::add(una2, a2, una2, msk);
-		//cv::add(una2, unaryMap, una2, msk2);
+	//double a1 = uMean;// *2.0 / 3.0;//b1=1.0
+	//double b2 = 1 - uMean / 5.0;
+	//double a2 = (a1 + 1 - uMean / 3.0) / 2.0;
+	//double tp = (b2 - a2) / (1 - uMean);
+	//cv::Mat una2;
+	//cv::Mat msk = unaryMap > a1;
+	//cv::Mat msk2 = unaryMap <= a1;
+	//cv::subtract(unaryMap,a1,una2,msk);
+	//cv::subtract(una2, una2, una2, msk2);
+	//una2 = una2*tp;
+	//cv::add(una2, a2, una2, msk);
+	//cv::add(una2, unaryMap, una2, msk2);
 
 
-		//(unaryMap - uMean) / (1 - uMean)*(b2 - a2) + a2;
+	//(unaryMap - uMean) / (1 - uMean)*(b2 - a2) + a2;
 
-		//illustrate unary map
-		cv::Mat img = cv::imread(pic);
-		cv::Mat illUnary(img.size(), CV_32F);
-		//cv::Mat illUna2(img.size(), CV_32F);
-		for (int i = 0; i < initval.m_info.numlabels; i++)
+	//illustrate unary map
+	cv::Mat img = cv::imread(pic);
+	cv::Mat illUnary(img.size(), CV_32F);
+	//cv::Mat illUna2(img.size(), CV_32F);
+	for (int i = 0; i < initval.m_info.numlabels; i++)
+	{
+		for (auto ite = initval.m_info.sps[i].begin(); ite < initval.m_info.sps[i].end(); ite++)
 		{
-			for (auto ite = initval.m_info.sps[i].begin(); ite < initval.m_info.sps[i].end(); ite++)
-			{
-				illUnary.at<float>((*ite).y, (*ite).x) = unaryMap.at<float>(i);
-				//illUna2.at<float>((*ite).y, (*ite).x) = una2.at<float>(i);
-			}
+			illUnary.at<float>((*ite).y, (*ite).x) = unaryMap.at<float>(i);
+			//illUna2.at<float>((*ite).y, (*ite).x) = una2.at<float>(i);
 		}
-		////cv::Mat imr;
-		////illUnary.convertTo(imr, CV_8U,255.0);
-		////cv::imshow("unary map", illUnary);
-		////cv::waitKey(0);
+	}
+	////cv::Mat imr;
+	////illUnary.convertTo(imr, CV_8U,255.0);
+	////cv::imshow("unary map", illUnary);
+	////cv::waitKey(0);
 
-		////bool res = cv::imwrite("..\\..\\result\\"+jpgname+".png", imr);
-		////std::cout << "finished "<<res << std::endl;
-		////std::cin.get();
-		////return 0;
+	////bool res = cv::imwrite("..\\..\\result\\"+jpgname+".png", imr);
+	////std::cout << "finished "<<res << std::endl;
+	////std::cin.get();
+	////return 0;
 
-		cv::imshow("original", img);
-		cv::imshow("unary map", illUnary);
-		//cv::imshow("una2", illUna2);
-		cv::waitKey(0);
+	cv::Mat thresMap;
+	double imMean = 1.8 * cv::mean(illUnary)[0];
+
+	cv::exp((illUnary - imMean)*(-20.0), thresMap);
+	thresMap = 1.0 / (1.0 + thresMap);
+	cv::normalize(thresMap, thresMap, 0.0, 1.0, NORM_MINMAX);
+
+	//illUnary.convertTo(thresMap, CV_8U, 255.0);
+	//cv::threshold(illUnary, thresMap, imMean, 1.0, CV_THRESH_BINARY);
+	cv::imshow("original", img);
+	cv::imshow("unary map", illUnary);
+	cv::imshow("thresMap", thresMap);
+	cv::waitKey(0);
+		//break;
 	}
 	return 0;
 
@@ -96,11 +107,12 @@ int main()//1
 	//	}
 	//}
 	//cv::imshow("original", img);
+	//cv::imshow("unary map", illUnary);
 	////cv::imshow("unary2 map", illUna2);
 	//cv::imshow("final map", illFinal);
 	//cv::waitKey(0);
 
-	//return 0;
+	return 0;
 }
 
 int main0()//0

@@ -15,7 +15,7 @@ public:
 
 public:
 	InitValue()
-		:_bGMM(5), _fGMM(5){}
+		:_bGMM(4), _fGMM(4){}
 	void GetBgvalue(cv::Mat& unaryMap, const std::string& pic);
 
 	void getIdxs();

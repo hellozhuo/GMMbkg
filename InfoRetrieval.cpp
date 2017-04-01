@@ -47,7 +47,7 @@ void InfoRetrieval::RetrieveOnSP(unsigned int* img, int* labelsbuf)
 		*(buf++) = (unsigned char)(*(imgbuf + i * 4 + 1));//g
 		*(buf++) = (unsigned char)(*(imgbuf + i * 4 + 2));//r
 	}
-	//cv::cvtColor(im, im, CV_BGR2Lab);
+	cv::cvtColor(im, im, CV_BGR2Lab);
 
 	//auto labelbuf = labels.get();
 	buf = im.data;
