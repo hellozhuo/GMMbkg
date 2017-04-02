@@ -16,7 +16,7 @@ public:
 public:
 	InitValue()
 		:_bGMM(4), _fGMM(4){}
-	void GetBgvalue(cv::Mat& unaryMap, const std::string& pic);
+	void GetBgvalue(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic);
 
 	void getIdxs();
 
@@ -24,7 +24,10 @@ public:
 	int removeCluster(double sumclus[3], cv::Mat& borderlabels, std::vector<cv::Vec3f>& border);
 	void getSalFromClusteredBorder(cv::Mat& unaryMap, bool illustrate = false);
 
-	void getSalFromGmmBorder(cv::Mat& unaryMap, const std::string& pic);
+	void getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic);
+	void enhance(cv::Mat& unaryMap);
+
+	void fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic);
 };
 
 class Covariance

@@ -1,9 +1,10 @@
 #include"InitValue.h"
+#include"permutohedral.h"
 #include<map>
 #include<algorithm>
 #include<functional>
 
-void InitValue::GetBgvalue(cv::Mat& unaryMap,const std::string& pic)
+void InitValue::GetBgvalue(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic)
 {
 	//string pic = "..\\..\\MSRA10K_Imgs_GT\\Imgs\\938.jpg";
 	int spcount = 200;
@@ -32,7 +33,7 @@ void InitValue::GetBgvalue(cv::Mat& unaryMap,const std::string& pic)
 	getIdxs();
 
 	//getSalFromClusteredBorder(unaryMap);
-	getSalFromGmmBorder(unaryMap,pic);
+	getSalFromGmmBorder(unaryMap, unaFuse, pic);
 
 	return;
 }
@@ -265,7 +266,7 @@ void InitValue::getSalFromClusteredBorder(cv::Mat& unaryMap, bool illustrate)
 	}
 }
 
-void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, const std::string& pic)
+void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic)
 {
 	cv::Mat img0 = cv::imread(pic);
 	cv::Mat img;
@@ -395,6 +396,70 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, const std::string& pic)
 	////}
 	//cv::imshow("illutotal", illtotal);
 	//cv::waitKey(0);
+	enhance(unaryMap);
+	fuseSpatial(unaryMap, unaFuse, pic);
 
 	return;
+}
+
+void InitValue::fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic)
+{
+	CV_Assert(unaryMap.cols == m_info.numlabels);
+	const int N = unaryMap.cols;
+	float posNorm = 1.0 / max(m_info.height, m_info.width);
+
+	float sigma_c_ = 1.0 / 20.0;
+
+	std::vector< cv::Vec3f > features(N);
+	cv::Mat_<float> data(N, 7);
+	for (int i = 0; i < N; i++) {
+		features[i] = cv::Vec3f(m_info.features[i][0]/255.0,m_info.features[i][1]/255.0,m_info.features[i][2]/255.0) * sigma_c_;
+		cv::Vec2f p = cv::Vec2f(m_info.features[i][3], m_info.features[i][4])*posNorm;
+		data(i, 0) = 1;
+		data(i, 1) = (p.dot(p));// *unaryMap.at<float>(i);
+		data(i, 2) = p[0];
+		data(i, 3) = p[1];
+		data(i, 4) = p[0];// *unaryMap.at<float>(i);
+		data(i, 5) = p[1];// *unaryMap.at<float>(i);
+		data(i, 6) = 1;// unaryMap.at<float>(i);
+	}
+	// Filter
+	Permutohedral* permutohedral_ = new Permutohedral();
+	permutohedral_->init((const float*)features.data(), 3, N);
+
+	//Filter filter((const float*)features.data(), N, 3);
+	//filter.filter(data.ptr<float>(), data.ptr<float>(), 4);
+
+	permutohedral_->compute(data.ptr<float>(), data.ptr<float>(), 7, 0, 0, N, N);
+
+	// Compute the uniqueness
+	//std::vector< float > r(N);
+	unaFuse = cv::Mat::zeros(1, N, CV_32F);
+	for (int i = 0; i < N; i++)
+	{
+		unaFuse.at<float>(i) = data(i, 1) / data(i, 0)
+			- 2 * (data(i, 2)*data(i, 4) + data(i, 3)*data(i, 5)) / (std::pow(data(i, 0), 2))
+			+ (data(i, 2)*data(i, 2) + data(i, 3)*data(i, 3))*data(i, 6) / std::pow(data(i, 0), 3);
+	}
+	//r[i] = data(i, 3) / data(i, 0) - (data(i, 1) * data(i, 1) + data(i, 2) * data(i, 2)) / (data(i, 0) * data(i, 0));
+
+	//normVec(r);
+	cv::normalize(unaFuse, unaFuse, 0.0, 1.0, NORM_MINMAX);
+	return;
+}
+
+void InitValue::enhance(cv::Mat& unaryMap)
+{
+	CV_Assert(unaryMap.cols == m_info.numlabels);
+	cv::Mat thresMap;
+	double s = 0;
+	for (int i = 0; i < unaryMap.cols; i++)
+	{
+		s += m_info.features[i][5] * unaryMap.at<float>(i);
+	}
+	double imMean = 1.8 * s / (m_info.height*m_info.width);
+
+	cv::exp((unaryMap - imMean)*(-20.0), thresMap);
+	thresMap = 1.0 / (1.0 + thresMap);
+	cv::normalize(thresMap, unaryMap, 0.0, 1.0, NORM_MINMAX);
 }

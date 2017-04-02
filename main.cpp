@@ -12,6 +12,37 @@
 
 //using namespace Gdiplus;
 //using namespace std;
+int main2()//2
+{
+	while (1)
+	{
+		std::string jpgname;
+		std::cout << "\nplease input jpg number" << std::endl;
+		std::cin >> jpgname;
+		if (jpgname == "q") break;
+		//std::string jpgname = "137";
+		string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\guided_filter\\";
+		//string filebase = "E:\\lab\\C_C++\\semantic-segmentation\\salient\\images\\";
+		string pic = filebase + jpgname + ".jpg";
+		string picout = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\hisgoEqua2\\" + jpgname + ".jpg";
+
+		cv::Mat img = cv::imread(pic);
+		cv::Mat outImg;
+		std::vector<cv::Mat> mv, outMv(3);
+		cv::split(img, mv);
+		for (int i = 0; i < 3; i++)
+		{
+			cv::equalizeHist(mv[i], outMv[i]);
+		}
+		cv::merge(outMv, outImg);
+		bool res = cv::imwrite(picout, outImg);
+		std::cout << "finished "<<res<<" : " << jpgname;
+		//cv::imshow("original", img);
+		//cv::imshow("after histogram equalization", outImg);
+		//cv::waitKey(0);
+	}
+	return 0;
+}
 
 int main()//1
 {
@@ -22,15 +53,20 @@ int main()//1
 	//location smoothness: w2 gama
 	//color similarity: w3 mu	
 	FineValue fineval(0, 0, 3, 40, 63, 6, 43, 2);//6,10,2,20,33,3,43
-	cv::Mat unaryMap;
+	cv::Mat unaryMap, unaFuse;
 	std::string jpgname;
 	std::cout << "\nplease input jpg number" << std::endl;
 	std::cin >> jpgname;
 	if (jpgname == "q") break;
 	//std::string jpgname = "137";
-	//string pic = "E:\\lab\\C_C++\\semantic-segmentation\\salient\\images\\" + jpgname + ".jpg";
-	string pic = "..\\..\\MSRA10K_Imgs_GT\\Imgs\\" + jpgname + ".jpg";
-	initval.GetBgvalue(unaryMap, pic);
+	string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\guided_filter\\";
+	//string filebase2 = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\prob\\";
+	//string filebase = "E:\\lab\\C_C++\\semantic-segmentation\\salient\\images\\";
+	string pic = filebase + jpgname + ".jpg";
+	//string pic2 = filebase2 + jpgname + ".jpg";
+	//string pic = "..\\..\\MSRA10K_Imgs_GT\\Imgs\\" + jpgname + ".jpg";
+	initval.GetBgvalue(unaryMap, unaFuse, pic);
+	//initval2.GetBgvalue(unaryMap2, pic2);
 	//continue;
 
 	//////////////////////////////////////////////////////////////////////////
@@ -62,10 +98,11 @@ int main()//1
 	{
 		for (auto ite = initval.m_info.sps[i].begin(); ite < initval.m_info.sps[i].end(); ite++)
 		{
-			illUnary.at<float>((*ite).y, (*ite).x) = unaryMap.at<float>(i);
+			illUnary.at<float>((*ite).y, (*ite).x) = unaFuse.at<float>(i);
 			//illUna2.at<float>((*ite).y, (*ite).x) = una2.at<float>(i);
 		}
 	}
+
 	////cv::Mat imr;
 	////illUnary.convertTo(imr, CV_8U,255.0);
 	////cv::imshow("unary map", illUnary);
@@ -76,18 +113,18 @@ int main()//1
 	////std::cin.get();
 	////return 0;
 
-	cv::Mat thresMap;
-	double imMean = 1.8 * cv::mean(illUnary)[0];
+	//cv::Mat thresMap;
+	//double imMean = 1.8 * cv::mean(illUnary)[0];
 
-	cv::exp((illUnary - imMean)*(-20.0), thresMap);
-	thresMap = 1.0 / (1.0 + thresMap);
-	cv::normalize(thresMap, thresMap, 0.0, 1.0, NORM_MINMAX);
+	//cv::exp((illUnary - imMean)*(-20.0), thresMap);
+	//thresMap = 1.0 / (1.0 + thresMap);
+	//cv::normalize(thresMap, thresMap, 0.0, 1.0, NORM_MINMAX);
 
 	//illUnary.convertTo(thresMap, CV_8U, 255.0);
 	//cv::threshold(illUnary, thresMap, imMean, 1.0, CV_THRESH_BINARY);
 	cv::imshow("original", img);
 	cv::imshow("unary map", illUnary);
-	cv::imshow("thresMap", thresMap);
+	//cv::imshow("thresMap", thresMap);
 	cv::waitKey(0);
 		//break;
 	}
