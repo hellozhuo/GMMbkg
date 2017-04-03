@@ -59,7 +59,7 @@ int main()//1
 	std::cin >> jpgname;
 	if (jpgname == "q") break;
 	//std::string jpgname = "137";
-	string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\guided_filter\\";
+	string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\Imgs\\";
 	//string filebase2 = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\prob\\";
 	//string filebase = "E:\\lab\\C_C++\\semantic-segmentation\\salient\\images\\";
 	string pic = filebase + jpgname + ".jpg";
@@ -71,10 +71,10 @@ int main()//1
 	//{
 	//	unaFuse.at<float>(i) = exp(-settings_.k_ * dist[i]);
 	//}
-	cv::Mat unafinal;
-	cv::exp(unaFuse*3.0, unafinal);
-	cv::multiply(unaryMap, unafinal, unafinal);
-	cv::normalize(unafinal, unafinal, 0.0, 1.0, NORM_MINMAX);
+	//cv::Mat unafinal;
+	//cv::exp(unaFuse*3.0, unafinal);
+	//cv::multiply(unaryMap, unafinal, unafinal);
+	//cv::normalize(unafinal, unafinal, 0.0, 1.0, NORM_MINMAX);
 
 	//continue;
 
@@ -103,14 +103,14 @@ int main()//1
 	cv::Mat img = cv::imread(pic);
 	cv::Mat illUnary(img.size(), CV_32F);
 	cv::Mat illUnary2(img.size(), CV_32F);
-	cv::Mat illUnaryfinal(img.size(), CV_32F);
+	//cv::Mat illUnaryfinal(img.size(), CV_32F);
 	for (int i = 0; i < initval.m_info.numlabels_; i++)
 	{
 		for (auto ite = initval.m_info.sps_[i].begin(); ite < initval.m_info.sps_[i].end(); ite++)
 		{
 			illUnary.at<float>((*ite).y, (*ite).x) = unaFuse.at<float>(i);
 			illUnary2.at<float>((*ite).y, (*ite).x) = unaryMap.at<float>(i);
-			illUnaryfinal.at<float>((*ite).y, (*ite).x) = unafinal.at<float>(i);
+			//illUnaryfinal.at<float>((*ite).y, (*ite).x) = unafinal.at<float>(i);
 		}
 	}
 
@@ -140,7 +140,7 @@ int main()//1
 	cv::imshow("original", img);	
 	cv::imshow("spatial map", illUnary);
 	cv::imshow("unary map", illUnary2);
-	cv::imshow("unary final", illUnaryfinal);
+	//cv::imshow("unary final", illUnaryfinal);
 	cv::waitKey(0);
 		//break;
 	}

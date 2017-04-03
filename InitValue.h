@@ -11,7 +11,7 @@ public:
 	std::vector<int> m_borderIdx, m_innerIdx;
 
 	CmGMM _bGMM, _fGMM; // Background and foreground GMM
-	Mat _bGMMidx1i, _fGMMidx1i;	// Background and foreground GMM components, supply memory for GMM, not used for Grabcut 
+	cv::Mat _bGMMidx1i, _fGMMidx1i;	// Background and foreground GMM components, supply memory for GMM, not used for Grabcut 
 
 public:
 	InitValue()

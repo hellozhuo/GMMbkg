@@ -412,24 +412,65 @@ void InitValue::fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::stri
 	//float posNorm = 1.0 / max(m_info.height_, m_info.width_);
 
 	float sigma_c_ = 1.f / 20.0;
+	float sigma_p_ = 1.f / 0.25;
 
-	std::vector< cv::Vec3f > features(N);
-	cv::Mat_<float> data(N, 4);
+	////////get background weight matrix
+	float sigma_b_ = 0.5;
+	cv::Mat bkw = 1.0 - unaryMap;
+	bkw = bkw.mul(bkw) / (-sigma_b_*sigma_b_);
+	cv::exp(bkw, bkw);
+	bkw = 1.f - bkw;
+
+	std::vector< cv::Vec2f > features(N);
+	cv::Mat_<float> data(N, 6);
 	for (int i = 0; i < N; i++) {
-		features[i] = m_info.features_[i].mean_lab_ * sigma_c_;
-		cv::Vec2f p = m_info.features_[i].mean_position_;
+		features[i] = m_info.features_[i].mean_position_ * sigma_p_;
+		cv::Vec3f c = m_info.features_[i].mean_lab_;
 		data(i, 0) = 1;
-		data(i, 1) = (p.dot(p));// *(1 - unaryMap.at<float>(i));
-		data(i, 2) = p[0];
-		data(i, 3) = p[1];
+		data(i, 1) =  bkw.at<float>(i);
+		data(i, 2) = c[0] * bkw.at<float>(i);
+		data(i, 3) = c[1] * bkw.at<float>(i);
+		data(i, 4) = c[2] * bkw.at<float>(i);
+		data(i, 5) = c.dot(c) * bkw.at<float>(i);
 		//data(i, 4) = p[0] * unaryMap.at<float>(i);
 		//data(i, 5) = p[1] * unaryMap.at<float>(i);
 		//data(i, 6) = unaryMap.at<float>(i);
 	}
 
 	Permutohedral* permutohedral_ = new Permutohedral();
-	permutohedral_->init((const float*)features.data(), 3, N);
-	permutohedral_->compute(data.ptr<float>(), data.ptr<float>(), 4, 0, 0, N, N);
+	permutohedral_->init((const float*)features.data(), 2, N);
+	permutohedral_->compute(data.ptr<float>(), data.ptr<float>(), 6, 0, 0, N, N);
+
+
+	///////////
+	//std::vector< Vec2f > features(stat.size());
+	//Mat_<float> data(stat.size(), 5);
+	//for (int i = 0; i < N; i++) {
+	//	features[i] = stat[i].mean_position_ / settings_.sigma_p_;
+	//	Vec3f c = stat[i].mean_color_;
+	//	data(i, 0) = 1;
+	//	data(i, 1) = c[0];
+	//	data(i, 2) = c[1];
+	//	data(i, 3) = c[2];
+	//	data(i, 4) = c.dot(c);
+	//}
+	//// Filter
+	//Filter filter((const float*)features.data(), N, 2);
+	//filter.filter(data.ptr<float>(), data.ptr<float>(), 5);
+
+	// Compute the uniqueness
+	unaFuse = cv::Mat::zeros(1, N, CV_32F);
+	for (int i = 0; i < N; i++) {
+		cv::Vec3f c = m_info.features_[i].mean_lab_;
+
+		unaFuse.at<float>(i) = data(i, 1)* c.dot(c)
+			- 2 * (c[0] * data(i, 2) + c[1] * data(i, 3) + c[2] * data(i, 4))
+			+ data(i, 5);
+
+		//unaFuse.at<float>(i) = data(i, 0)*c.dot(c) + data(i, 4) - 2 * (c[0] * data(i, 1) + c[1] * data(i, 2) + c[2] * data(i, 3));
+	}
+	//normVec(r);
+	/////////////////
 
 	// Compute the uniqueness
 	//std::vector< float > r(N);
@@ -461,22 +502,22 @@ void InitValue::fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::stri
 	//	r[i] = u / norm;
 	//}
 
-	unaFuse = cv::Mat::zeros(1, N, CV_32F);
-	for (int i = 0; i < N; i++)
-	{
-		//unaFuse.at<float>(i) = data(i, 1) / data(i, 0)
-		//	- 2 * (data(i, 2)*data(i, 4) + data(i, 3)*data(i, 5)) / (std::pow(data(i, 0), 2))
-		//	+ (data(i, 2)*data(i, 2) + data(i, 3)*data(i, 3))*data(i, 6) / std::pow(data(i, 0), 3);
-		unaFuse.at<float>(i) = data(i, 1) / data(i, 0)
-			- (data(i, 2)*data(i, 2) + data(i, 3)*data(i, 3)) / (data(i, 0) * data(i, 0));
-		//unaFuse.at<float>(i) = r[i];
-	}
+	//unaFuse = cv::Mat::zeros(1, N, CV_32F);
+	//for (int i = 0; i < N; i++)
+	//{
+	//	//unaFuse.at<float>(i) = data(i, 1) / data(i, 0)
+	//	//	- 2 * (data(i, 2)*data(i, 4) + data(i, 3)*data(i, 5)) / (std::pow(data(i, 0), 2))
+	//	//	+ (data(i, 2)*data(i, 2) + data(i, 3)*data(i, 3))*data(i, 6) / std::pow(data(i, 0), 3);
+	//	unaFuse.at<float>(i) = data(i, 1) / data(i, 0)
+	//		- (data(i, 2)*data(i, 2) + data(i, 3)*data(i, 3)) / (data(i, 0) * data(i, 0));
+	//	//unaFuse.at<float>(i) = r[i];
+	//}
 	//r[i] = data(i, 3) / data(i, 0) - (data(i, 1) * data(i, 1) + data(i, 2) * data(i, 2)) / (data(i, 0) * data(i, 0));
 
 	//normVec(r);
 	cv::normalize(unaFuse, unaFuse, 0.0, 1.0, NORM_MINMAX);
-	cv::exp(unaFuse*(-3.0), unaFuse);
-	cv::normalize(unaFuse, unaFuse, 0.0, 1.0, NORM_MINMAX);
+	//cv::exp(unaFuse*(-3.0), unaFuse);
+	//cv::normalize(unaFuse, unaFuse, 0.0, 1.0, NORM_MINMAX);
 	return;
 }
 
