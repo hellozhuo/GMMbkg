@@ -67,6 +67,12 @@ int main()//1
 	//string pic = "..\\..\\MSRA10K_Imgs_GT\\Imgs\\" + jpgname + ".jpg";
 	initval.GetBgvalue(unaryMap, unaFuse, pic);
 	//initval2.GetBgvalue(unaryMap2, pic2);
+	//for (int i = 0; i < initval.m_info.numlabels; i++)
+	//{
+	//	unaFuse.at<float>(i) = exp(-settings_.k_ * dist[i]);
+	//}
+	cv::exp(unaFuse*(-3.0), unaFuse);
+	cv::normalize(unaFuse, unaFuse, 0.0, 1.0, NORM_MINMAX);
 	//continue;
 
 	//////////////////////////////////////////////////////////////////////////

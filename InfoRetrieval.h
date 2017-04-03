@@ -11,6 +11,7 @@
 #include<opencv2/imgproc/imgproc.hpp>
 
 #include "PictureHandler.h"
+#include"fastmath.h"
 #include "SLIC.h"
 
 template<typename T, size_t size, typename... Args>
