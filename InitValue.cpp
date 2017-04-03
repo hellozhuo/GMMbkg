@@ -400,6 +400,7 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const s
 	//cv::waitKey(0);
 	enhance(unaryMap);
 	fuseSpatial(unaryMap, unaFuse, pic);
+	//enhance(unaFuse, 1.0);
 
 	return;
 }
@@ -410,55 +411,55 @@ void InitValue::fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::stri
 	const int N = unaryMap.cols;
 	//float posNorm = 1.0 / max(m_info.height_, m_info.width_);
 
-	float sigma_c_ = 20.0;
+	float sigma_c_ = 1.f / 20.0;
 
-	//std::vector< cv::Vec3f > features(N);
-	//cv::Mat_<float> data(N, 4);
-	//for (int i = 0; i < N; i++) {
-	//	features[i] = cv::Vec3f(m_info.features[i][0]/255.0,m_info.features[i][1]/255.0,m_info.features[i][2]/255.0) * sigma_c_;
-	//	cv::Vec2f p = cv::Vec2f(m_info.features[i][3], m_info.features[i][4])*posNorm;
-	//	data(i, 0) = 1;
-	//	data(i, 3) = (p.dot(p));// *unaryMap.at<float>(i);
-	//	data(i, 1) = p[0];
-	//	data(i, 2) = p[1];
-	//	//data(i, 4) = p[0];// *unaryMap.at<float>(i);
-	//	//data(i, 5) = p[1];// *unaryMap.at<float>(i);
-	//	//data(i, 6) = 1;// unaryMap.at<float>(i);
-	//}
-	// Filter
-	//Permutohedral* permutohedral_ = new Permutohedral();
-	//permutohedral_->init((const float*)features.data(), 3, N);
-	//permutohedral_->compute(data.ptr<float>(), data.ptr<float>(), 4, 0, 0, N, N);
+	std::vector< cv::Vec3f > features(N);
+	cv::Mat_<float> data(N, 4);
+	for (int i = 0; i < N; i++) {
+		features[i] = m_info.features_[i].mean_lab_ * sigma_c_;
+		cv::Vec2f p = m_info.features_[i].mean_position_;
+		data(i, 0) = 1;
+		data(i, 1) = (p.dot(p));// *(1 - unaryMap.at<float>(i));
+		data(i, 2) = p[0];
+		data(i, 3) = p[1];
+		//data(i, 4) = p[0] * unaryMap.at<float>(i);
+		//data(i, 5) = p[1] * unaryMap.at<float>(i);
+		//data(i, 6) = unaryMap.at<float>(i);
+	}
+
+	Permutohedral* permutohedral_ = new Permutohedral();
+	permutohedral_->init((const float*)features.data(), 3, N);
+	permutohedral_->compute(data.ptr<float>(), data.ptr<float>(), 4, 0, 0, N, N);
 
 	// Compute the uniqueness
 	//std::vector< float > r(N);
 
 	//////////////
-	std::vector< float > r(N);
-	const float sc = 0.5 / (sigma_c_*sigma_c_);
-	for (int i = 0; i < N; i++) {
-		float u = 0, norm = 1e-10;
-		Vec3f c = m_info.features_[i].mean_lab_;
-		Vec2f p(0.f, 0.f);
+	//std::vector< float > r(N);
+	//const float sc = 0.5 / (sigma_c_*sigma_c_);
+	//for (int i = 0; i < N; i++) {
+	//	float u = 0, norm = 1e-10;
+	//	Vec3f c = m_info.features_[i].mean_lab_;
+	//	Vec2f p(0.f, 0.f);
 
-		// Find the mean position
-		for (int j = 0; j < N; j++) {
-			Vec3f dc = m_info.features_[i].mean_lab_ - c;
-			float w = fast_exp(-sc * dc.dot(dc));
-			p += w*m_info.features_[i].mean_position_;
-			norm += w;
-		}
-		p *= 1.0 / norm;
+	//	// Find the mean position
+	//	for (int j = 0; j < N; j++) {
+	//		Vec3f dc = m_info.features_[j].mean_lab_ - c;
+	//		float w = fast_exp(-sc * dc.dot(dc));
+	//		p += w*m_info.features_[j].mean_position_;
+	//		norm += w;
+	//	}
+	//	p *= 1.0 / norm;
 
-		// Compute the variance
-		for (int j = 0; j < N; j++) {
-			Vec3f dc = m_info.features_[i].mean_lab_ - c;
-			Vec2f dp = m_info.features_[i].mean_position_ - p;
-			float w = fast_exp(-sc * dc.dot(dc));
-			u += w*dp.dot(dp);
-		}
-		r[i] = u / norm;
-	}
+	//	// Compute the variance
+	//	for (int j = 0; j < N; j++) {
+	//		Vec3f dc = m_info.features_[j].mean_lab_ - c;
+	//		Vec2f dp = m_info.features_[j].mean_position_ - p;
+	//		float w = fast_exp(-sc * dc.dot(dc));
+	//		u += w*dp.dot(dp);
+	//	}
+	//	r[i] = u / norm;
+	//}
 
 	unaFuse = cv::Mat::zeros(1, N, CV_32F);
 	for (int i = 0; i < N; i++)
@@ -466,18 +467,20 @@ void InitValue::fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::stri
 		//unaFuse.at<float>(i) = data(i, 1) / data(i, 0)
 		//	- 2 * (data(i, 2)*data(i, 4) + data(i, 3)*data(i, 5)) / (std::pow(data(i, 0), 2))
 		//	+ (data(i, 2)*data(i, 2) + data(i, 3)*data(i, 3))*data(i, 6) / std::pow(data(i, 0), 3);
-		//unaFuse.at<float>(i) = data(i, 3) / data(i, 0)
-		//	- (data(i, 2)*data(i, 2) + data(i, 1)*data(i, 1)) / (data(i, 0) * data(i, 0));
-		unaFuse.at<float>(i) = r[i];
+		unaFuse.at<float>(i) = data(i, 1) / data(i, 0)
+			- (data(i, 2)*data(i, 2) + data(i, 3)*data(i, 3)) / (data(i, 0) * data(i, 0));
+		//unaFuse.at<float>(i) = r[i];
 	}
 	//r[i] = data(i, 3) / data(i, 0) - (data(i, 1) * data(i, 1) + data(i, 2) * data(i, 2)) / (data(i, 0) * data(i, 0));
 
 	//normVec(r);
 	cv::normalize(unaFuse, unaFuse, 0.0, 1.0, NORM_MINMAX);
+	cv::exp(unaFuse*(-3.0), unaFuse);
+	cv::normalize(unaFuse, unaFuse, 0.0, 1.0, NORM_MINMAX);
 	return;
 }
 
-void InitValue::enhance(cv::Mat& unaryMap)
+void InitValue::enhance(cv::Mat& unaryMap, double fct)
 {
 	CV_Assert(unaryMap.cols == m_info.numlabels_);
 	cv::Mat thresMap;
@@ -486,7 +489,7 @@ void InitValue::enhance(cv::Mat& unaryMap)
 	{
 		s += m_info.features_[i].size_ * unaryMap.at<float>(i);
 	}
-	double imMean = 1.8 * s / (m_info.height_*m_info.width_);
+	double imMean = fct * s / (m_info.height_*m_info.width_);
 
 	cv::exp((unaryMap - imMean)*(-20.0), thresMap);
 	thresMap = 1.0 / (1.0 + thresMap);

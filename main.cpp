@@ -71,8 +71,11 @@ int main()//1
 	//{
 	//	unaFuse.at<float>(i) = exp(-settings_.k_ * dist[i]);
 	//}
-	cv::exp(unaFuse*(-3.0), unaFuse);
-	cv::normalize(unaFuse, unaFuse, 0.0, 1.0, NORM_MINMAX);
+	cv::Mat unafinal;
+	cv::exp(unaFuse*3.0, unafinal);
+	cv::multiply(unaryMap, unafinal, unafinal);
+	cv::normalize(unafinal, unafinal, 0.0, 1.0, NORM_MINMAX);
+
 	//continue;
 
 	//////////////////////////////////////////////////////////////////////////
@@ -99,15 +102,21 @@ int main()//1
 	//illustrate unary map
 	cv::Mat img = cv::imread(pic);
 	cv::Mat illUnary(img.size(), CV_32F);
-	//cv::Mat illUna2(img.size(), CV_32F);
+	cv::Mat illUnary2(img.size(), CV_32F);
+	cv::Mat illUnaryfinal(img.size(), CV_32F);
 	for (int i = 0; i < initval.m_info.numlabels_; i++)
 	{
 		for (auto ite = initval.m_info.sps_[i].begin(); ite < initval.m_info.sps_[i].end(); ite++)
 		{
 			illUnary.at<float>((*ite).y, (*ite).x) = unaFuse.at<float>(i);
-			//illUna2.at<float>((*ite).y, (*ite).x) = una2.at<float>(i);
+			illUnary2.at<float>((*ite).y, (*ite).x) = unaryMap.at<float>(i);
+			illUnaryfinal.at<float>((*ite).y, (*ite).x) = unafinal.at<float>(i);
 		}
 	}
+
+	//double m_sal = 0.1 * img.cols*img.rows;
+	//for (float sm = sum(illUnary)[0]; sm < m_sal; sm = sum(illUnary)[0])
+	//	illUnary = min(illUnary*m_sal / sm, 1.0f);
 
 	////cv::Mat imr;
 	////illUnary.convertTo(imr, CV_8U,255.0);
@@ -128,9 +137,10 @@ int main()//1
 
 	//illUnary.convertTo(thresMap, CV_8U, 255.0);
 	//cv::threshold(illUnary, thresMap, imMean, 1.0, CV_THRESH_BINARY);
-	cv::imshow("original", img);
-	cv::imshow("unary map", illUnary);
-	//cv::imshow("thresMap", thresMap);
+	cv::imshow("original", img);	
+	cv::imshow("spatial map", illUnary);
+	cv::imshow("unary map", illUnary2);
+	cv::imshow("unary final", illUnaryfinal);
 	cv::waitKey(0);
 		//break;
 	}

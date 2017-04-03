@@ -25,7 +25,7 @@ public:
 	void getSalFromClusteredBorder(cv::Mat& unaryMap, bool illustrate = false);
 
 	void getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic);
-	void enhance(cv::Mat& unaryMap);
+	void enhance(cv::Mat& unaryMap, double fct = 1.8);
 
 	void fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic);
 };
