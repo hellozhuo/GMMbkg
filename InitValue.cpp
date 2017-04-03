@@ -7,30 +7,40 @@
 void InitValue::GetBgvalue(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic)
 {
 	//string pic = "..\\..\\MSRA10K_Imgs_GT\\Imgs\\938.jpg";
-	int spcount = 200;
+	int spcount = 300;
 	double compactness = 20.0;
 	this->m_info.GetInfomation(pic, spcount, compactness);
+
+	getIdxs();
 
 #pragma region illustrate the border
 	//illustate the border
 	//cv::Mat img1 = cv::imread(pic);
 	//cv::Mat img2 = img1.clone();
-	//for (int i = 0; i < m_info.numlabels; i++)
+	//
+	//for (auto i : m_borderIdx)
 	//{
-	//	if (m_info.features[i][6])
+	//	for (auto bg = m_info.sps_[i].begin(); bg < m_info.sps_[i].end(); bg++)
 	//	{
-	//		for (auto bg = m_info.sps[i].begin(); bg < m_info.sps[i].end(); bg++)
-	//		{
-	//			for (int j = 0; j < 3; j++)
-	//				img.at<cv::Vec3b>((*bg).y, (*bg).x)[j] = i;
-	//		}
+	//		for (int j = 0; j < 3; j++)
+	//			img1.at<cv::Vec3b>((*bg).y, (*bg).x)[j] = i;
 	//	}
 	//}
-	//cv::imshow("border", img);
+
+	//for (auto i : m_borderIdx2)
+	//{
+	//	for (auto bg = m_info.sps_[i].begin(); bg < m_info.sps_[i].end(); bg++)
+	//	{
+	//		for (int j = 0; j < 3; j++)
+	//			img2.at<cv::Vec3b>((*bg).y, (*bg).x)[j] = i;
+	//	}
+	//}
+
+	//cv::imshow("border1", img1);
+	//cv::imshow("border2", img2);
 	//cv::waitKey(0);
 #pragma endregion
 
-	getIdxs();
 
 	//getSalFromClusteredBorder(unaryMap);
 	getSalFromGmmBorder(unaryMap, unaFuse, pic);
@@ -51,6 +61,15 @@ void InitValue::getIdxs()
 		else
 		{
 			m_innerIdx.push_back(i);
+		}
+	}
+	
+	m_borderIdx2.clear();
+	for (auto i : m_borderIdx)
+	{
+		for (auto j : m_info.features_[i].neighbor_)
+		{
+			m_borderIdx2.insert(j);
 		}
 	}
 }
@@ -271,13 +290,14 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const s
 	//cv::Mat img0 = cv::imread(pic);
 	//cv::Mat img;
 	//cv::cvtColor(img0, img, CV_BGR2Lab);
-	cv::Mat segVal1f = cv::Mat::zeros(m_info.imLab_.size(), CV_32F);
+	cv::Mat segVal1f = cv::Mat::zeros(m_info.imNormLab_.size(), CV_32F);
 	//cv::Mat imgBGR3f;
 	//img.convertTo(imgBGR3f, CV_32FC3, 1 / 255.0);
-	for (int i = 0; i < m_borderIdx.size(); i++)
+	//for (int i = 0; i < m_borderIdx.size(); i++)
+	for (auto i:m_borderIdx)
 	{
-		for (auto ite = m_info.sps_[m_borderIdx[i]].begin();
-			ite < m_info.sps_[m_borderIdx[i]].end(); ite++)
+		for (auto ite = m_info.sps_[i].begin();
+			ite < m_info.sps_[i].end(); ite++)
 		{
 			segVal1f.at<float>(ite->y, ite->x) = 1;
 		}
@@ -399,7 +419,7 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const s
 	//cv::imshow("illutotal", illtotal);
 	//cv::waitKey(0);
 	enhance(unaryMap);
-	fuseSpatial(unaryMap, unaFuse, pic);
+	//fuseSpatial(unaryMap, unaFuse, pic);
 	//enhance(unaFuse, 1.0);
 
 	return;
@@ -535,4 +555,33 @@ void InitValue::enhance(cv::Mat& unaryMap, double fct)
 	cv::exp((unaryMap - imMean)*(-20.0), thresMap);
 	thresMap = 1.0 / (1.0 + thresMap);
 	cv::normalize(thresMap, unaryMap, 0.0, 1.0, NORM_MINMAX);
+}
+
+void InitValue::morphSmooth(const cv::Mat& dMap, cv::Mat& dst)
+{
+	double smooth_alpha = 50;
+	int radius = floor(smooth_alpha*std::sqrt(cv::mean(dMap).val[0]));
+	radius = radius > 3 ? radius : 3;
+
+	cv::Mat img;
+	dMap.convertTo(img, CV_8UC1, 255);
+	//cv::imshow("img", img);
+	cv::Mat ker = getStructuringElement(cv::MORPH_RECT, cv::Size(radius, radius));
+	cv::Mat Ie;
+	cv::erode(img, Ie, ker);
+	cv::Mat Iobr(img.size(), img.type()), Iobrd;
+	cv::Mat Iobrcbr(img.size(), img.type());
+
+	imreconstruct(img.data, Ie.data, 4, img.rows, img.cols, Iobr.data);
+
+	cv::dilate(Iobr, Iobrd, ker);
+	Iobr = 255 - Iobr; Iobrd = 255 - Iobrd;
+
+	imreconstruct(Iobr.data, Iobrd.data, 4, img.rows, img.cols, Iobrcbr.data);
+
+	Iobrcbr = 255 - Iobrcbr;
+	Iobrcbr.convertTo(Iobrcbr, CV_32FC1);
+	cv::normalize(Iobrcbr, dst, 0.0, 1.0, cv::NORM_MINMAX);
+	//Iobrcbr.copyTo(dMap);
+	return;
 }

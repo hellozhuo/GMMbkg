@@ -2,6 +2,7 @@
 
 #include"InfoRetrieval.h"
 #include"CmGMM.h"
+#include"vincent11.h"
 
 class InitValue
 {
@@ -9,6 +10,7 @@ public:
 	InfoRetrieval m_info;
 
 	std::vector<int> m_borderIdx, m_innerIdx;
+	std::set<int> m_borderIdx2;
 
 	CmGMM _bGMM, _fGMM; // Background and foreground GMM
 	cv::Mat _bGMMidx1i, _fGMMidx1i;	// Background and foreground GMM components, supply memory for GMM, not used for Grabcut 
@@ -28,6 +30,8 @@ public:
 	void enhance(cv::Mat& unaryMap, double fct = 1.8);
 
 	void fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic);
+
+	static void morphSmooth(const cv::Mat& dMap, cv::Mat& dst);
 };
 
 class Covariance

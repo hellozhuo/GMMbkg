@@ -28,7 +28,7 @@ void InfoRetrieval::GetInfomation(std::string filename, int spcount, double comp
 }
 
 //[L a b sx sy pixelNumber isborder] 7 dimensions
-void InfoRetrieval::RetrieveOnSP(const unsigned int* img,const int* labelsbuf)
+void InfoRetrieval::RetrieveOnSP(const unsigned int* img,const int* const labelsbuf)
 {
 	int i, j, idx;
 	sps_.resize(numlabels_);
@@ -36,6 +36,7 @@ void InfoRetrieval::RetrieveOnSP(const unsigned int* img,const int* labelsbuf)
 	for (i = 0; i < numlabels_; i++)
 	{
 		sps_[i].clear();
+		features_[i].neighbor_.clear();
 	}
 
 	cv::Mat_<cv::Vec3b> im(height_, width_);
@@ -62,7 +63,7 @@ void InfoRetrieval::RetrieveOnSP(const unsigned int* img,const int* labelsbuf)
 	{
 		for (j = 0; j < width_; j++)
 		{
-			idx = *(labelsbuf++);
+			idx = *(labelsbuf + i*width_ + j);
 			sps_[idx].push_back(cv::Point(j, i));
 			features_[idx].mean_lab_ += imLab_(i, j);
 			features_[idx].mean_normlab_ += imNormLab_(i, j);
@@ -70,6 +71,21 @@ void InfoRetrieval::RetrieveOnSP(const unsigned int* img,const int* labelsbuf)
 			features_[idx].mean_position_ += cv::Vec2f(j, i);
 			tm_count[idx]++;
 			if (i == 0 || i == height_ - 1 || j == 0 || j == width_ - 1) features_[idx].isborder_ = true;
+
+			int nb1 = idx;
+			int nb2 = idx;
+			if (j < width_ - 1) nb1 = *(labelsbuf + i*width_ + j + 1);
+			if (i < height_ - 1) nb2 = *(labelsbuf + (i + 1)*width_ + j);
+			if (idx != nb1)
+			{
+				features_[idx].neighbor_.insert(nb1);
+				features_[nb1].neighbor_.insert(idx);
+			}
+			if (idx != nb2)
+			{
+				features_[idx].neighbor_.insert(nb2);
+				features_[nb2].neighbor_.insert(idx);
+			}
 		}
 	}
 	for (i = 0; i < numlabels_; i++)

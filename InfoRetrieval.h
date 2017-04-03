@@ -31,6 +31,7 @@ struct SuperpixelInfo {
 	cv::Vec3f mean_normlab_;//[0 1]
 	cv::Vec3f mean_bgr_;//[0 255]
 	cv::Vec2f mean_position_;//[0 1]
+	std::set<int> neighbor_;
 	bool isborder_;
 	int size_;
 	SuperpixelInfo();
@@ -63,6 +64,6 @@ public:
 
 private:
 	//get information to border and inner
-	void RetrieveOnSP(const unsigned int* img, const int* labelsbuf);
+	void RetrieveOnSP(const unsigned int* img, const int* const labelsbuf);
 	void DestroyFeatures();
 };
