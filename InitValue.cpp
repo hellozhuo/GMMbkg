@@ -40,250 +40,251 @@ void InitValue::GetBgvalue(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::strin
 
 void InitValue::getIdxs()
 {
-	if (borderIdx.size() > 0 || innerIdx.size() > 0) return;
+	if (m_borderIdx.size() > 0 || m_innerIdx.size() > 0) return;
 
-	for (int i = 0; i < m_info.numlabels; i++)
+	for (int i = 0; i < m_info.numlabels_; i++)
 	{
-		if (m_info.features[i][6])
+		if (m_info.features_[i].isborder_)
 		{
-			borderIdx.push_back(i);
+			m_borderIdx.push_back(i);
 		}
 		else
 		{
-			innerIdx.push_back(i);
+			m_innerIdx.push_back(i);
 		}
 	}
 }
 
 void InitValue::clusterBorder(cv::Mat& borderlabels, std::vector<cv::Vec3f>& border)
 {
-	for (int i = 0; i < m_info.numlabels; i++)
-	{
-		if (m_info.features[i][6])
-		{
-			border.push_back(cv::Vec3f(m_info.features[i][0],
-				m_info.features[i][1], m_info.features[i][2]));
-		}
-	}
+	//for (int i = 0; i < m_info.numlabels; i++)
+	//{
+	//	if (m_info.features[i][6])
+	//	{
+	//		border.push_back(cv::Vec3f(m_info.features[i][0],
+	//			m_info.features[i][1], m_info.features[i][2]));
+	//	}
+	//}
 
-	CV_Assert(!border.empty());
-	cv::Mat _bgdSamples((int)border.size(), 3, CV_32FC1, &border[0][0]);
-	kmeans(_bgdSamples, 3, borderlabels,
-		cv::TermCriteria(CV_TERMCRIT_ITER, 10, 0.0), 0, cv::KMEANS_PP_CENTERS);
+	//CV_Assert(!border.empty());
+	//cv::Mat _bgdSamples((int)border.size(), 3, CV_32FC1, &border[0][0]);
+	//kmeans(_bgdSamples, 3, borderlabels,
+	//	cv::TermCriteria(CV_TERMCRIT_ITER, 10, 0.0), 0, cv::KMEANS_PP_CENTERS);
 }
 
 int InitValue::removeCluster(double sumclus[3], cv::Mat& borderlabels, std::vector<cv::Vec3f>& border)
 {
-	std::array<std::array<int, 256>, 3> hist[3];
-	memset(sumclus, 0, 3*sizeof(double));//sizeof(sumclus)=8,not 24
-	//double sumclus[3] = { 0.0, 0.0, 0.0 };
-	for (int i = 0; i < 3; i++)
-	{
-		for (auto ite = hist[i].begin(); ite < hist[i].end(); ite++)
-			ite->assign(0);
-	}
-	const cv::Mat& img = m_info.inputImg;
-	for (int i = 0; i < borderIdx.size(); i++)
-	{
-		const int clus = borderlabels.at<int>(i, 0);
-		for (auto ite = m_info.sps[borderIdx[i]].begin(); ite < m_info.sps[borderIdx[i]].end(); ite++)
-		{
-			for (int j = 0; j < 3; j++)//L a b color
-			{
-				hist[clus][j][img.at<cv::Vec3b>((*ite).y, (*ite).x)[j]]++;
-			}
-		}
-	}
-
-	//and then, calculate the inter-distance between each cluster pair
-	//this code may be accelerated
-	cv::Mat dis3x3 = cv::Mat_<double>(3, 3);
-	for (int i = 0; i < 3; i++)
-	{
-		for (int j = i; j < 3; j++)
-		{
-			if (i == j) dis3x3.at<double>(i, j) = 0;
-			else
-			{
-				double dis = 0.0;
-				for (int k = 0; k < 256; k++)
-				{
-					dis += pow(hist[i][0][k] - hist[j][0][k], 2)
-						+ pow(hist[i][1][k] - hist[j][1][k], 2)
-						+ pow(hist[i][2][k] - hist[j][2][k], 2);
-				}
-				dis = sqrt(dis);
-				dis3x3.at<double>(i, j) = dis3x3.at<double>(j, i) = dis;
-			}
-		}
-	}
-	cv::Mat disSum;
-	cv::reduce(dis3x3, disSum, 0, CV_REDUCE_SUM, CV_64F);
-	for (int i = 0; i < border.size(); i++)
-	{
-		int clusId = borderlabels.at<int>(i, 0);
-		sumclus[clusId] += 1;
-	}
-	double* buf = disSum.ptr<double>(0);
-	for (int i = 0; i < 3; i++)
-	{
-		*(buf + i) = (*(buf + i))*m_info.numlabels / sumclus[i];
-	}
-	int rmId = *buf > *(buf + 1) ? 0 : 1;
-	rmId = *(buf + rmId) > *(buf + 2) ? rmId : 2;
-	return rmId;
-}
-
-void InitValue::getSalFromClusteredBorder(cv::Mat& unaryMap, bool illustrate)
-{
-	//border superpixels clustering
-	cv::Mat borderlabels;
-	std::vector<cv::Vec3f> border;
-	clusterBorder(borderlabels, border);
-
-	//illustate the k - means result
+	//std::array<std::array<int, 256>, 3> hist[3];
+	//memset(sumclus, 0, 3*sizeof(double));//sizeof(sumclus)=8,not 24
+	////double sumclus[3] = { 0.0, 0.0, 0.0 };
+	//for (int i = 0; i < 3; i++)
+	//{
+	//	for (auto ite = hist[i].begin(); ite < hist[i].end(); ite++)
+	//		ite->assign(0);
+	//}
+	//const cv::Mat& img = m_info.inputImg;
 	//for (int i = 0; i < borderIdx.size(); i++)
 	//{
 	//	const int clus = borderlabels.at<int>(i, 0);
 	//	for (auto ite = m_info.sps[borderIdx[i]].begin(); ite < m_info.sps[borderIdx[i]].end(); ite++)
 	//	{
-	//		if (0 == clus) img2.at<cv::Vec3b>((*ite).y, (*ite).x) = cv::Vec3b(255, 0, 0);
-	//		else if (1 == clus) img2.at<cv::Vec3b>((*ite).y, (*ite).x) = cv::Vec3b(0, 255, 0);
-	//		else img2.at<cv::Vec3b>((*ite).y, (*ite).x) = cv::Vec3b(0, 0, 0);
+	//		for (int j = 0; j < 3; j++)//L a b color
+	//		{
+	//			hist[clus][j][img.at<cv::Vec3b>((*ite).y, (*ite).x)[j]]++;
+	//		}
 	//	}
 	//}
-	//cv::imshow("original", img1);
-	//cv::imshow("cluster", img2);
-	//cv::waitKey(0);
 
-	//calculate distance from each inner note to the border cluster
+	////and then, calculate the inter-distance between each cluster pair
+	////this code may be accelerated
+	//cv::Mat dis3x3 = cv::Mat_<double>(3, 3);
+	//for (int i = 0; i < 3; i++)
+	//{
+	//	for (int j = i; j < 3; j++)
+	//	{
+	//		if (i == j) dis3x3.at<double>(i, j) = 0;
+	//		else
+	//		{
+	//			double dis = 0.0;
+	//			for (int k = 0; k < 256; k++)
+	//			{
+	//				dis += pow(hist[i][0][k] - hist[j][0][k], 2)
+	//					+ pow(hist[i][1][k] - hist[j][1][k], 2)
+	//					+ pow(hist[i][2][k] - hist[j][2][k], 2);
+	//			}
+	//			dis = sqrt(dis);
+	//			dis3x3.at<double>(i, j) = dis3x3.at<double>(j, i) = dis;
+	//		}
+	//	}
+	//}
+	//cv::Mat disSum;
+	//cv::reduce(dis3x3, disSum, 0, CV_REDUCE_SUM, CV_64F);
+	//for (int i = 0; i < border.size(); i++)
+	//{
+	//	int clusId = borderlabels.at<int>(i, 0);
+	//	sumclus[clusId] += 1;
+	//}
+	//double* buf = disSum.ptr<double>(0);
+	//for (int i = 0; i < 3; i++)
+	//{
+	//	*(buf + i) = (*(buf + i))*m_info.numlabels / sumclus[i];
+	//}
+	//int rmId = *buf > *(buf + 1) ? 0 : 1;
+	//rmId = *(buf + rmId) > *(buf + 2) ? rmId : 2;
+	return 0;// rmId;
+}
 
-	//but I'd like to get the histogram of each cluster in Lab space first, in order to 
-	//remove the most unlikely border cluster
-	double sumclus[3];	
-	int rmId = removeCluster(sumclus,borderlabels,border);
+void InitValue::getSalFromClusteredBorder(cv::Mat& unaryMap, bool illustrate)
+{
+	////border superpixels clustering
+	//cv::Mat borderlabels;
+	//std::vector<cv::Vec3f> border;
+	//clusterBorder(borderlabels, border);
 
-	//first, calculate the covariance and mean so forth.
-	Covariance clus[2];
-	std::map<int, int> ids, reids;
+	////illustate the k - means result
+	////for (int i = 0; i < borderIdx.size(); i++)
+	////{
+	////	const int clus = borderlabels.at<int>(i, 0);
+	////	for (auto ite = m_info.sps[borderIdx[i]].begin(); ite < m_info.sps[borderIdx[i]].end(); ite++)
+	////	{
+	////		if (0 == clus) img2.at<cv::Vec3b>((*ite).y, (*ite).x) = cv::Vec3b(255, 0, 0);
+	////		else if (1 == clus) img2.at<cv::Vec3b>((*ite).y, (*ite).x) = cv::Vec3b(0, 255, 0);
+	////		else img2.at<cv::Vec3b>((*ite).y, (*ite).x) = cv::Vec3b(0, 0, 0);
+	////	}
+	////}
+	////cv::imshow("original", img1);
+	////cv::imshow("cluster", img2);
+	////cv::waitKey(0);
 
-	int ini(0);
-	for (int i = 0; i < 3; i++)
-	{
-		if (i != rmId)
-		{
-			ids.insert(std::make_pair(i, ini));
-			reids.insert(std::make_pair(ini, i));
-			clus[ini].initLearning();
-			ini++;
-		}
-	}
-	for (int i = 0; i < border.size(); i++)
-	{
-		int clusId = borderlabels.at<int>(i, 0);
-		if (clusId != rmId)
-		{
-			clus[ids.at(clusId)].addSample(border[i]);
-		}
-		//sumclus[clusId] += 1; // m_info.features[borderIdx[i]][5];
-	}
+	////calculate distance from each inner note to the border cluster
 
-	for (int i = 0; i < 2; i++)
-	{
-		clus[i].endLearning();
-	}
+	////but I'd like to get the histogram of each cluster in Lab space first, in order to 
+	////remove the most unlikely border cluster
+	//double sumclus[3];	
+	//int rmId = removeCluster(sumclus,borderlabels,border);
 
-	//second, calculate distance as the initial saliency
-	//std::vector<double> iniSal(innerIdx.size());
-	cv::Mat mean[2];
-	std::vector<cv::Vec2d> sal;
-	for (int i = 0; i < 2; i++)
-	{
-		mean[i] = cv::Mat_<double>(1, 3);
-		mean[i].at<double>(0, 0) = clus[i].mean[0];
-		mean[i].at<double>(0, 1) = clus[i].mean[1];
-		mean[i].at<double>(0, 2) = clus[i].mean[2];
-	}
+	////first, calculate the covariance and mean so forth.
+	//Covariance clus[2];
+	//std::map<int, int> ids, reids;
 
-	for (int i = 0; i < m_info.numlabels; i++)
-	{
+	//int ini(0);
+	//for (int i = 0; i < 3; i++)
+	//{
+	//	if (i != rmId)
+	//	{
+	//		ids.insert(std::make_pair(i, ini));
+	//		reids.insert(std::make_pair(ini, i));
+	//		clus[ini].initLearning();
+	//		ini++;
+	//	}
+	//}
+	//for (int i = 0; i < border.size(); i++)
+	//{
+	//	int clusId = borderlabels.at<int>(i, 0);
+	//	if (clusId != rmId)
+	//	{
+	//		clus[ids.at(clusId)].addSample(border[i]);
+	//	}
+	//	//sumclus[clusId] += 1; // m_info.features[borderIdx[i]][5];
+	//}
 
-		cv::Mat lab = cv::Mat_<double>(1, 3);
-		lab.at<double>(0, 0) = m_info.features[i][0];
-		lab.at<double>(0, 1) = m_info.features[i][1];
-		lab.at<double>(0, 2) = m_info.features[i][2];
-		cv::Vec2d nodeSal;
-		for (int j = 0; j < 2; j++)
-		{
-			cv::Mat re = (lab - mean[j])*(clus[j].inverseCovs)*((lab - mean[j]).t());
-			nodeSal[j] = re.at<double>(0);
-		}
-		sal.push_back(nodeSal);
-	}
+	//for (int i = 0; i < 2; i++)
+	//{
+	//	clus[i].endLearning();
+	//}
 
-	//calculate unary
-	unaryMap = cv::Mat::zeros(1, m_info.numlabels, CV_32F);
-	float* unabuf = unaryMap.ptr<float>(0);
-	for (int i = 0; i < m_info.numlabels; i++)
-	{
-		double comsal = (sal[i][0] * sumclus[reids.at(0)] +
-			sal[i][1] * sumclus[reids.at(1)]) / (sumclus[reids.at(0)] + sumclus[reids.at(1)]);
-		*(unabuf + i) = comsal;
-	}
-	cv::normalize(unaryMap, unaryMap, 0.0, 1.0, cv::NORM_MINMAX);
+	////second, calculate distance as the initial saliency
+	////std::vector<double> iniSal(innerIdx.size());
+	//cv::Mat mean[2];
+	//std::vector<cv::Vec2d> sal;
+	//for (int i = 0; i < 2; i++)
+	//{
+	//	mean[i] = cv::Mat_<double>(1, 3);
+	//	mean[i].at<double>(0, 0) = clus[i].mean[0];
+	//	mean[i].at<double>(0, 1) = clus[i].mean[1];
+	//	mean[i].at<double>(0, 2) = clus[i].mean[2];
+	//}
 
-	//illustrate initial value results
-	if (illustrate)
-	{	
-		//illustrate 3 distance maps
-		cv::Mat map0 = cv::Mat::zeros(m_info.height, m_info.width, CV_32F);
-		cv::Mat map1 = cv::Mat::zeros(m_info.height, m_info.width, CV_32F);
-		//cv::Mat map2 = cv::Mat::zeros(m_info.height, m_info.width, CV_32F);
-		cv::Mat map3 = cv::Mat::zeros(m_info.height, m_info.width, CV_32F);
-		for (int i = 0; i < m_info.numlabels; i++)
-		{
-			for (auto ite = m_info.sps[i].begin(); ite < m_info.sps[i].end(); ite++)
-			{
-				map0.at<float>((*ite).y, (*ite).x) = sal[i][0];
-				map1.at<float>((*ite).y, (*ite).x) = sal[i][1];
-				//map2.at<float>((*ite).y, (*ite).x) = sal[i][2];
-				map3.at<float>((*ite).y, (*ite).x) = *(unabuf + i);
-			}
-		}
-		cv::normalize(map0, map0, 0.0, 1.0, cv::NORM_MINMAX);
-		cv::normalize(map1, map1, 0.0, 1.0, cv::NORM_MINMAX);
-		//cv::normalize(map2, map2, 0.0, 1.0, cv::NORM_MINMAX);
+	//for (int i = 0; i < m_info.numlabels; i++)
+	//{
 
-		//map3 = (map0 * sumclus[reids.at(0)] +
-		//	map1 * sumclus[reids.at(1)]) / (sumclus[reids.at(0)] + sumclus[reids.at(1)]);
-		//cv::normalize(map3, map3, 0.0, 1.0, cv::NORM_MINMAX);
+	//	cv::Mat lab = cv::Mat_<double>(1, 3);
+	//	lab.at<double>(0, 0) = m_info.features[i][0];
+	//	lab.at<double>(0, 1) = m_info.features[i][1];
+	//	lab.at<double>(0, 2) = m_info.features[i][2];
+	//	cv::Vec2d nodeSal;
+	//	for (int j = 0; j < 2; j++)
+	//	{
+	//		cv::Mat re = (lab - mean[j])*(clus[j].inverseCovs)*((lab - mean[j]).t());
+	//		nodeSal[j] = re.at<double>(0);
+	//	}
+	//	sal.push_back(nodeSal);
+	//}
 
-		cv::imshow("map0", map0);
-		cv::imshow("map1", map1);
-		//cv::imshow("map2", map2);
-		cv::imshow("mapcom", map3);
-		cv::waitKey(0);
-	}
+	////calculate unary
+	//unaryMap = cv::Mat::zeros(1, m_info.numlabels, CV_32F);
+	//float* unabuf = unaryMap.ptr<float>(0);
+	//for (int i = 0; i < m_info.numlabels; i++)
+	//{
+	//	double comsal = (sal[i][0] * sumclus[reids.at(0)] +
+	//		sal[i][1] * sumclus[reids.at(1)]) / (sumclus[reids.at(0)] + sumclus[reids.at(1)]);
+	//	*(unabuf + i) = comsal;
+	//}
+	//cv::normalize(unaryMap, unaryMap, 0.0, 1.0, cv::NORM_MINMAX);
+
+	////illustrate initial value results
+	//if (illustrate)
+	//{	
+	//	//illustrate 3 distance maps
+	//	cv::Mat map0 = cv::Mat::zeros(m_info.height, m_info.width, CV_32F);
+	//	cv::Mat map1 = cv::Mat::zeros(m_info.height, m_info.width, CV_32F);
+	//	//cv::Mat map2 = cv::Mat::zeros(m_info.height, m_info.width, CV_32F);
+	//	cv::Mat map3 = cv::Mat::zeros(m_info.height, m_info.width, CV_32F);
+	//	for (int i = 0; i < m_info.numlabels; i++)
+	//	{
+	//		for (auto ite = m_info.sps[i].begin(); ite < m_info.sps[i].end(); ite++)
+	//		{
+	//			map0.at<float>((*ite).y, (*ite).x) = sal[i][0];
+	//			map1.at<float>((*ite).y, (*ite).x) = sal[i][1];
+	//			//map2.at<float>((*ite).y, (*ite).x) = sal[i][2];
+	//			map3.at<float>((*ite).y, (*ite).x) = *(unabuf + i);
+	//		}
+	//	}
+	//	cv::normalize(map0, map0, 0.0, 1.0, cv::NORM_MINMAX);
+	//	cv::normalize(map1, map1, 0.0, 1.0, cv::NORM_MINMAX);
+	//	//cv::normalize(map2, map2, 0.0, 1.0, cv::NORM_MINMAX);
+
+	//	//map3 = (map0 * sumclus[reids.at(0)] +
+	//	//	map1 * sumclus[reids.at(1)]) / (sumclus[reids.at(0)] + sumclus[reids.at(1)]);
+	//	//cv::normalize(map3, map3, 0.0, 1.0, cv::NORM_MINMAX);
+
+	//	cv::imshow("map0", map0);
+	//	cv::imshow("map1", map1);
+	//	//cv::imshow("map2", map2);
+	//	cv::imshow("mapcom", map3);
+	//	cv::waitKey(0);
+	//}
 }
 
 void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic)
 {
-	cv::Mat img0 = cv::imread(pic);
-	cv::Mat img;
-	cv::cvtColor(img0, img, CV_BGR2Lab);
-	cv::Mat segVal1f = cv::Mat::zeros(img.size(), CV_32F);
-	cv::Mat imgBGR3f;
-	img.convertTo(imgBGR3f, CV_32FC3, 1 / 255.0);
-	for (int i = 0; i < borderIdx.size(); i++)
+	//cv::Mat img0 = cv::imread(pic);
+	//cv::Mat img;
+	//cv::cvtColor(img0, img, CV_BGR2Lab);
+	cv::Mat segVal1f = cv::Mat::zeros(m_info.imLab_.size(), CV_32F);
+	//cv::Mat imgBGR3f;
+	//img.convertTo(imgBGR3f, CV_32FC3, 1 / 255.0);
+	for (int i = 0; i < m_borderIdx.size(); i++)
 	{
-		for (auto ite = m_info.sps[borderIdx[i]].begin();
-			ite < m_info.sps[borderIdx[i]].end(); ite++)
+		for (auto ite = m_info.sps_[m_borderIdx[i]].begin();
+			ite < m_info.sps_[m_borderIdx[i]].end(); ite++)
 		{
 			segVal1f.at<float>(ite->y, ite->x) = 1;
 		}
 	}
-	_bGMM.BuildGMMs(imgBGR3f, _bGMMidx1i, segVal1f);
-	_bGMM.RefineGMMs(imgBGR3f, _bGMMidx1i, segVal1f);
+
+	_bGMM.BuildGMMs(m_info.imNormLab_, _bGMMidx1i, segVal1f);
+	_bGMM.RefineGMMs(m_info.imNormLab_, _bGMMidx1i, segVal1f);
 
 	const CmGaussian<3>* cmGuass = _bGMM.GetGaussians();
 
@@ -320,9 +321,9 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const s
 	//cv::waitKey(0);
 	//return;
 
-	unaryMap = cv::Mat::zeros(1, m_info.numlabels, CV_32F);
+	unaryMap = cv::Mat::zeros(1, m_info.numlabels_, CV_32F);
 	std::vector<cv::Mat> unaMap(_bGMM.K());
-	for (int i = 0; i < unaMap.size(); i++) unaMap[i] = cv::Mat::zeros(1, m_info.numlabels, CV_32F);
+	for (int i = 0; i < unaMap.size(); i++) unaMap[i] = cv::Mat::zeros(1, m_info.numlabels_, CV_32F);
 	
 	//std::map<double, int, std::greater<double>> dnIds;
 	//for (int i = 0; i < _bGMM.K(); i++)
@@ -336,13 +337,14 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const s
 	//ite = dnIds.begin();
 	//for (int i = 0; i < 2; i++, ite++) posW[i] = cmGuass[ite->second].w;// / suM;
 
-	float dot[3];
+	//float dot[3];
 	//float* unabuf = unaryMap.ptr<float>(0);
-	for (int i = 0; i < m_info.numlabels; i++)
+	for (int i = 0; i < m_info.numlabels_; i++)
 	{
-		dot[0] = m_info.features[i][0] / 255.0;//B or L
-		dot[1] = m_info.features[i][1] / 255.0;//G or a
-		dot[2] = m_info.features[i][2] / 255.0;//R or b
+		//dot[0] = m_info.features[i][0] / 255.0;//B or L
+		//dot[1] = m_info.features[i][1] / 255.0;//G or a
+		//dot[2] = m_info.features[i][2] / 255.0;//R or b
+		
 
 		//suM = 0;
 		//ite = dnIds.begin();
@@ -354,7 +356,7 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const s
 		//*(unabuf + i) = 1-suM;
 		for (int j = 0; j < _bGMM.K(); j++)
 		{
-			unaMap[j].at<float>(i) = _bGMM.P(j, dot);
+			unaMap[j].at<float>(i) = _bGMM.P(j, m_info.features_[i].mean_normlab_);
 		}
 	}
 
@@ -404,9 +406,9 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const s
 
 void InitValue::fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic)
 {
-	CV_Assert(unaryMap.cols == m_info.numlabels);
+	CV_Assert(unaryMap.cols == m_info.numlabels_);
 	const int N = unaryMap.cols;
-	float posNorm = 1.0 / max(m_info.height, m_info.width);
+	//float posNorm = 1.0 / max(m_info.height_, m_info.width_);
 
 	float sigma_c_ = 20.0;
 
@@ -436,22 +438,22 @@ void InitValue::fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::stri
 	const float sc = 0.5 / (sigma_c_*sigma_c_);
 	for (int i = 0; i < N; i++) {
 		float u = 0, norm = 1e-10;
-		Vec3f c = cv::Vec3f(m_info.features[i][0] / 255.0, m_info.features[i][1] / 255.0, m_info.features[i][2] / 255.0);
+		Vec3f c = m_info.features_[i].mean_lab_;
 		Vec2f p(0.f, 0.f);
 
 		// Find the mean position
 		for (int j = 0; j < N; j++) {
-			Vec3f dc = cv::Vec3f(m_info.features[i][0] / 255.0, m_info.features[i][1] / 255.0, m_info.features[i][2] / 255.0) - c;
+			Vec3f dc = m_info.features_[i].mean_lab_ - c;
 			float w = fast_exp(-sc * dc.dot(dc));
-			p += w*(cv::Vec2f(m_info.features[i][3], m_info.features[i][4])*posNorm);
+			p += w*m_info.features_[i].mean_position_;
 			norm += w;
 		}
 		p *= 1.0 / norm;
 
 		// Compute the variance
 		for (int j = 0; j < N; j++) {
-			Vec3f dc = cv::Vec3f(m_info.features[i][0] / 255.0, m_info.features[i][1] / 255.0, m_info.features[i][2] / 255.0) - c;
-			Vec2f dp = cv::Vec2f(m_info.features[i][3], m_info.features[i][4])*posNorm - p;
+			Vec3f dc = m_info.features_[i].mean_lab_ - c;
+			Vec2f dp = m_info.features_[i].mean_position_ - p;
 			float w = fast_exp(-sc * dc.dot(dc));
 			u += w*dp.dot(dp);
 		}
@@ -477,14 +479,14 @@ void InitValue::fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::stri
 
 void InitValue::enhance(cv::Mat& unaryMap)
 {
-	CV_Assert(unaryMap.cols == m_info.numlabels);
+	CV_Assert(unaryMap.cols == m_info.numlabels_);
 	cv::Mat thresMap;
 	double s = 0;
 	for (int i = 0; i < unaryMap.cols; i++)
 	{
-		s += m_info.features[i][5] * unaryMap.at<float>(i);
+		s += m_info.features_[i].size_ * unaryMap.at<float>(i);
 	}
-	double imMean = 1.8 * s / (m_info.height*m_info.width);
+	double imMean = 1.8 * s / (m_info.height_*m_info.width_);
 
 	cv::exp((unaryMap - imMean)*(-20.0), thresMap);
 	thresMap = 1.0 / (1.0 + thresMap);

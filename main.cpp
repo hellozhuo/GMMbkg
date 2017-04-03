@@ -100,9 +100,9 @@ int main()//1
 	cv::Mat img = cv::imread(pic);
 	cv::Mat illUnary(img.size(), CV_32F);
 	//cv::Mat illUna2(img.size(), CV_32F);
-	for (int i = 0; i < initval.m_info.numlabels; i++)
+	for (int i = 0; i < initval.m_info.numlabels_; i++)
 	{
-		for (auto ite = initval.m_info.sps[i].begin(); ite < initval.m_info.sps[i].end(); ite++)
+		for (auto ite = initval.m_info.sps_[i].begin(); ite < initval.m_info.sps_[i].end(); ite++)
 		{
 			illUnary.at<float>((*ite).y, (*ite).x) = unaFuse.at<float>(i);
 			//illUna2.at<float>((*ite).y, (*ite).x) = una2.at<float>(i);

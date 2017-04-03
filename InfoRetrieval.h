@@ -26,6 +26,16 @@ std::unique_ptr<T[]> make_unique_array(size_t size)
 	return std::unique_ptr<T[], std::default_delete<T[]>>(new T[size]);
 }
 
+struct SuperpixelInfo {
+	cv::Vec3f mean_lab_;//L [0 100] a [-127 127] b [-127 127]
+	cv::Vec3f mean_normlab_;//[0 1]
+	cv::Vec3f mean_bgr_;//[0 255]
+	cv::Vec2f mean_position_;//[0 1]
+	bool isborder_;
+	int size_;
+	SuperpixelInfo();
+};
+
 class InfoRetrieval
 {
 public:
@@ -33,15 +43,17 @@ public:
 	//std::unique_ptr<int[]> labels; //label of each pixel
 	//std::unique_ptr<unsigned int[]> border; //[L a b sx sy pixelNumber] of border superpixels
 	//std::unique_ptr<unsigned int[]> inner; //[L a b sx sy pixelNumber] of inner superpixels
-	unsigned int** features;
-	std::vector<std::vector<cv::Point>> sps;
-	cv::Mat inputImg;
-	int height, width, numlabels;
-	PictureHandler picHand;
+	std::vector<SuperpixelInfo> features_;
+	std::vector<std::vector<cv::Point>> sps_;
+	//cv::Mat inputImg;
+	int height_, width_, numlabels_;
+	cv::Mat_<cv::Vec3f> imLab_;
+	cv::Mat_<cv::Vec3f> imNormLab_;
+	PictureHandler picHand_;
 
 public:
 	InfoRetrieval()
-		:height(0), width(0), numlabels(0){}
+		:height_(0), width_(0), numlabels_(0){}
 	~InfoRetrieval()
 	{
 		DestroyFeatures();
@@ -51,6 +63,6 @@ public:
 
 private:
 	//get information to border and inner
-	void RetrieveOnSP(unsigned int* img, int* labels);
+	void RetrieveOnSP(const unsigned int* img, const int* labelsbuf);
 	void DestroyFeatures();
 };

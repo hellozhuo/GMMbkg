@@ -49,10 +49,10 @@ void FineValue::proceed(InitValue& initVal, float* unary, int iter)
 	// Setup the CRF model
 	//DenseCRF2D crf(W, H, M);
 
-	GrabCutMF cutMF(initVal.m_info.numlabels, initVal.m_info.features,
-		_w1, _w2, _w3, _alpha, _beta, _gama, _mu);
+	//GrabCutMF cutMF(initVal.m_info.numlabels, initVal.m_info.features,
+	//	_w1, _w2, _w3, _alpha, _beta, _gama, _mu);
 
-	cutMF.initialize(unary);
-	cutMF.refine(iter);
-	resLabels = cutMF.getRes();
+	//cutMF.initialize(unary);
+	//cutMF.refine(iter);
+	//resLabels = cutMF.getRes();
 }
