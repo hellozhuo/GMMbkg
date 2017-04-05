@@ -31,7 +31,8 @@ struct SuperpixelInfo {
 	cv::Vec3f mean_normlab_;//[0 1]
 	cv::Vec3f mean_bgr_;//[0 255]
 	cv::Vec2f mean_position_;//[0 1]
-	std::set<int> neighbor_;
+	std::set<int, std::less<int>> neighbor_;
+	std::set<int, std::less<int>> neighborCnt_;
 	bool isborder_;
 	int size_;
 	SuperpixelInfo();
@@ -48,22 +49,34 @@ public:
 	std::vector<std::vector<cv::Point>> sps_;
 	//cv::Mat inputImg;
 	int height_, width_, numlabels_;
-	cv::Mat_<cv::Vec3f> imLab_;
-	cv::Mat_<cv::Vec3f> imNormLab_;
-	PictureHandler picHand_;
+	int sz_;
+	cv::Mat_<cv::Vec3f> imLab_;//normal Lab range
+	cv::Mat_<cv::Vec3f> imNormLab_;//[0 1]
+	cv::Mat_<cv::Vec3b> imBgr_;//[0 255]
+	//PictureHandler picHand_;
+	int* labelsbuf_;
+	bool nb_;
+	bool nbCnt_;//record if nods share the same borders with the neighbor nodes are calculated
 
 public:
 	InfoRetrieval()
-		:height_(0), width_(0), numlabels_(0){}
+		:height_(0), width_(0), numlabels_(0), labelsbuf_(nullptr), nb_(false), nbCnt_(false){}
 	~InfoRetrieval()
 	{
-		DestroyFeatures();
+		//DestroyFeatures();
 		//if (img) delete[] img;
+		if (labelsbuf_)
+		{
+			delete[] labelsbuf_;
+			labelsbuf_ = nullptr;
+		}
 	}
-	void GetInfomation(std::string filename, int spcount, double compactness);
+	void GetInfomation(const cv::Mat& im, int spcount, double compactness);
+	void getNeighbor(const int* const labelsbuf);
+	void getNeighborCnt();
 
 private:
 	//get information to border and inner
-	void RetrieveOnSP(const unsigned int* img, const int* const labelsbuf);
-	void DestroyFeatures();
+	void RetrieveOnSP(const cv::Mat_<cv::Vec3b>& im, const int* const labelsbuf);
+	//void DestroyFeatures();
 };

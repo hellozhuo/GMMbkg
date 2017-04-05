@@ -31,6 +31,7 @@
 #include <cstdlib>
 #include"permutohedral.h"
 #include"fastmath.h"
+#include"InitValue.h"
 //#include"CmGrabSal.h"
 
 class PairwisePotential{
@@ -114,12 +115,15 @@ public:
 	DenseCRF2D( int Num, int M );
 	virtual ~DenseCRF2D();
 	// Add a Gaussian pairwise potential with standard deviation sx and sy
-	void addPairwiseGaussian( float sx, float sy, unsigned int** spsfea, float w, const SemiMetricFunction * function=NULL );
+	void addPairwiseGaussian(float w, float sx, float sy,
+		const InitValue& initVal, bool usePixel, const SemiMetricFunction * function = NULL);
 	
 	// Add a Bilateral pairwise potential with spacial standard deviations sx, sy and color standard deviations sr,sg,sb
-	void addPairwiseBilateral(float sx, float sy, float sr, float sg, float sb, unsigned int** spsfea, float w, const SemiMetricFunction * function = NULL);
+	void addPairwiseBilateral(float w, float sx, float sy, float sr, float sg, float sb,
+		const InitValue& initVal, bool usePixel, const SemiMetricFunction * function = NULL);
 
-	void addPairwiseColorGaussian(float sr, float sg, float sb, unsigned int** spsfea, float w, const SemiMetricFunction * function = NULL);
+	void addPairwiseColorGaussian(float w, float sr, float sg, float sb,
+		const InitValue& initVal, bool usePixel, const SemiMetricFunction * function = NULL);
 	
 	// Set the unary potential for a specific variable
 	void setUnaryEnergy( int x, int y, const float * unary );

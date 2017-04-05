@@ -1,6 +1,7 @@
 #pragma once
 #include "DenseCRF.h"
 #include"CmGMM.h"
+#include"InitValue.h"
 
 
 class GrabCutMF
@@ -9,7 +10,7 @@ public: // Functions for saliency cut
 	// User supplied Trimap values
 	//enum TrimapValue {UserBack = 0, ProbBack = 64, TrimapUnknown = 128, ProbFore = 192, UserFore = 255};
 
-	GrabCutMF(int N, unsigned int** features, float w1, float w2, float w3, float alpha, float beta, float gama, float mu);
+	GrabCutMF(bool usePixel, const InitValue& initVal, float w1, float w2, float w3, float alpha, float beta, float gama, float mu);
 
 public: // Functions for GrabCut
 	//Mat setGrabReg(const Rect &rect, CMat &bordMask1u);
@@ -80,6 +81,7 @@ private:
 	//Mat _borderMask1u; // Mask for border regions
 
 	DenseCRF2D _crf;
+	bool usePixel_;
 	//CStr _nameNE;
 
 	//SaliencyGrabCut _Sal;

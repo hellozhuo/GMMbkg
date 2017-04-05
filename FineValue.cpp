@@ -3,14 +3,24 @@
 
 #include "GrabCutMF.h"
 
-float * FineValue::classify(const cv::Mat& note){
+float * FineValue::classify(const InitValue& initVal, const cv::Mat& note){
 	// 	const float u_energy = -log(1.0f / M);
 	// 	const float n_energy = -log((1.0f - GT_PROB) / (M - 1));
 	// 	const float p_energy = -log(GT_PROB);
+	CV_Assert(note.type() == CV_32F&&!note.empty());
+	cv::Mat denote;
+	cv::normalize(note, denote, 0.0, 0.98, NORM_MINMAX);
+	//for (auto i : initVal.m_borderIdx)
+	//{
+	//	for (auto j : initVal.m_info.sps_[i])
+	//	{
+	//		denote.at<float>(j.y, j.x) *= 0.5;
+	//	}
+	//}
 	int W = note.cols;
 	int H = note.rows;
 	float * res = new float[W*H*2];
-	float* pd = (float*)note.data;
+	float* pd = (float*)denote.data;
 	for (int k = 0; k < W*H; k++){
 		// Set the energy
 		float * r = res + k*2;
@@ -36,23 +46,25 @@ float * FineValue::classify(const cv::Mat& note){
 	return res;
 }
 
-void FineValue::getFineVal(InitValue& initVal, cv::Mat& unaryMap)
+void FineValue::getFineVal(const InitValue& initVal, const cv::Mat& unaryMap, cv::Mat& fineMap)
 {
-	float* unary = classify(unaryMap);
+	float* unary = classify(initVal, unaryMap);
 	proceed(initVal, unary,_iter);
 	if (unary) delete[] unary;
+	fineMap = _resLabels;
+	cv::normalize(fineMap, fineMap, 0.0, 1.0, NORM_MINMAX);
 	return;
 }
 
-void FineValue::proceed(InitValue& initVal, float* unary, int iter)
+void FineValue::proceed(const InitValue& initVal, float* unary, int iter)
 {
 	// Setup the CRF model
-	//DenseCRF2D crf(W, H, M);
+	//DenseCRF2D crf(initVal.m_info.width_ * initVal.m_info.height_, 2);
 
-	//GrabCutMF cutMF(initVal.m_info.numlabels, initVal.m_info.features,
-	//	_w1, _w2, _w3, _alpha, _beta, _gama, _mu);
+	GrabCutMF cutMF(true, initVal,
+		_w1, _w2, _w3, _alpha, _beta, _gama, _mu);
 
-	//cutMF.initialize(unary);
-	//cutMF.refine(iter);
-	//resLabels = cutMF.getRes();
+	cutMF.initialize(unary);
+	cutMF.refine(iter);
+	_resLabels = cutMF.getRes();
 }

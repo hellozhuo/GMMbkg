@@ -7,7 +7,7 @@
 class FineValue
 {
 public:
-	cv::Mat resLabels;
+	cv::Mat _resLabels;
 	float _w1, _w2, _w3, _alpha, _beta, _gama, _mu;
 	int _iter;
 
@@ -18,10 +18,10 @@ public:
 
 	}
 
-	void getFineVal(InitValue& initVal, cv::Mat& unaryMap);
+	void getFineVal(const InitValue& initVal, const cv::Mat& unaryMap, cv::Mat& fineMap);
 
 private:
-	float * classify(const cv::Mat& note);
+	float * classify(const InitValue& initVal, const cv::Mat& note);
 
-	void proceed(InitValue& initVal, float* unary, int iter = 4);
+	void proceed(const InitValue& initVal, float* unary, int iter = 4);
 };

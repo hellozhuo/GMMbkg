@@ -2,18 +2,27 @@
 #include "GrabCutMF.h"
 
 
-GrabCutMF::GrabCutMF(int N, unsigned int** features, float w1, float w2, float w3, float alpha, float beta, float gama, float mu)
-	:_crf(N, 2), _n(N)
+GrabCutMF::GrabCutMF(bool usePixel, const InitValue& initVal, float w1, float w2, float w3, float alpha, float beta, float gama, float mu)
+	: _n(initVal.m_info.height_*initVal.m_info.width_), _crf(_n, 2), usePixel_(usePixel)
 {
-	CV_Assert(N > 0 && features);
-	_segVal1f.create(1, _n, CV_32FC1);
-	_unary2f.create(1, _n, CV_32FC2);
+	CV_Assert(_n > 0);
+	if (usePixel)
+	{
+		_segVal1f.create(initVal.m_info.height_, initVal.m_info.width_, CV_32FC1);
+		_unary2f.create(initVal.m_info.height_, initVal.m_info.width_, CV_32FC2);
+	}
+	else
+	{
+		_segVal1f.create(1, _n, CV_32FC1);
+		_unary2f.create(1, _n, CV_32FC2);
+	}
+	
 	if (w1 != 0)
-		_crf.addPairwiseBilateral(alpha, alpha, beta, beta, beta, features, w1);
+		_crf.addPairwiseBilateral(w1, alpha, alpha, beta, beta, beta, initVal, usePixel);
 	if (w2 != 0)
-		_crf.addPairwiseGaussian(gama, gama, features, w2);
+		_crf.addPairwiseGaussian(w2, gama, gama, initVal, usePixel);
 	if (w3 != 0)
-		_crf.addPairwiseColorGaussian(mu, mu, mu, features, w3);
+		_crf.addPairwiseColorGaussian(w3, mu, mu, mu, initVal, usePixel);
 }
 
 // Initial rect region in between thr1 and thr2 and others below thr1 as the Grabcut paper 

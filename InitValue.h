@@ -2,7 +2,7 @@
 
 #include"InfoRetrieval.h"
 #include"CmGMM.h"
-#include"vincent11.h"
+
 
 class InitValue
 {
@@ -18,20 +18,36 @@ public:
 public:
 	InitValue()
 		:_bGMM(4), _fGMM(4){}
-	void GetBgvalue(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic);
+	void GetBgvalue(cv::Mat& unaryMap, cv::Mat& unaFuse, const cv::Mat& im, bool usePixel = false);
 
-	void getIdxs();
+	void getNeighborCnt();
+
+	static void morphSmooth(const cv::Mat& dMap, cv::Mat& dst);
+
+	static void enhanceWithGuidedFilter(const cv::Mat& I, cv::Mat& dst);
+
+	static bool removeFrame(const cv::Mat& inImg, cv::Mat& outImg, cv::Rect &roi);
+
+
+private:
+	void getIdxs(bool indx2 = false);
+	void getIdxs2();
 
 	void clusterBorder(cv::Mat& borderlabels, std::vector<cv::Vec3f>& border);
 	int removeCluster(double sumclus[3], cv::Mat& borderlabels, std::vector<cv::Vec3f>& border);
 	void getSalFromClusteredBorder(cv::Mat& unaryMap, bool illustrate = false);
 
-	void getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic);
+	void getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, bool usePixel);
 	void enhance(cv::Mat& unaryMap, double fct = 1.8);
 
 	void fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic);
 
-	static void morphSmooth(const cv::Mat& dMap, cv::Mat& dst);
+	static cv::Mat boxfilter(const cv::Mat& imSrc, int r);	
+
+	static cv::Mat fastguidedfilter(const cv::Mat& I, const cv::Mat& p, int r, double eps, int s);
+
+	static int findFrameMargin(const cv::Mat& img, bool reverse);
+
 };
 
 class Covariance

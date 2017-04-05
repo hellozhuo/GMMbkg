@@ -7,26 +7,68 @@
 #include "SLIC.h"
 #include"InitValue.h"
 #include"FineValue.h"
+#include"Automata.h"
 
 #include<opencv2/opencv.hpp>
 
+void beshowable(cv::Mat& illmor, std::string jpgname = "", bool wr = false)
+{
+	illmor.convertTo(illmor, CV_8U, 255.0);
+
+	if (wr)
+	{
+		cv::imwrite(jpgname, illmor);
+	}
+	
+	std::vector<cv::Mat> illmors(3);
+	for (int i = 0; i < 3; i++) illmors[i] = illmor;
+	cv::merge(illmors, illmor);
+}
+
 //using namespace Gdiplus;
 //using namespace std;
+int main4()//4
+{
+	cv::Mat_<float> ma = cv::Mat_<float>::zeros(4, 4);
+	cv::Mat re;
+	ma(0, 2) = 1;
+	ma(2, 2) = 3;
+	std::cout << ma << std::endl;
+	re = cv::Mat::ones(4, 1, CV_32F) * 2;
+	re = cv::Mat::diag(re);
+	std::cout << std::endl << re << std::endl;
+	ma = re*ma;
+	std::cout << std::endl << ma;
+	//cv::reduce(ma, re, 1, CV_REDUCE_SUM);
+	//re = ma > 0;
+	//re /= 255;
+	//int s = cv::sum(re)[0];
+	//auto tp = re.type();
+	//std::cout << "num: " << s << std::endl;
+	std::cin.get();
+	return 0;
+}
+
 int main3()//3
 {
-	std::set<int> a;
-	a.insert(3);
-	a.insert(2);
-	a.insert(3);
-	a.insert(2);
-	a.insert(1);
-	a.insert(3);
-	
-	for (auto i : a)
-	{
-		std::cout << i << "  ";
-	}
-	std::cin.get();
+	//string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\Imgs\\77.jpg";
+	string filebase = "E:\\lab\\C_C++\\semantic-segmentation\\salient\\images\\0021.jpg";
+	cv::Mat img = cv::imread(filebase);
+	cv::Mat fstimg;
+	cv::Rect rect;
+	bool isrm = InitValue::removeFrame(img, fstimg, rect);
+	//InitValue::enhanceWithGuidedFilter(img, fstimg);
+	//cv::Mat imga;
+	//cv::cvtColor(img, imga, CV_BGR2BGRA);
+	//std::vector<cv::Mat> mv;
+	//cv::split(imga, mv);
+	//mv.pop_back();
+	//cv::Mat a;
+	//cv::merge(mv, a);
+	cv::imshow("original", img);
+	//cv::imshow("a", a);
+	cv::imshow("fstimg", fstimg);
+	cv::waitKey(0);
 	return 0;
 }
 
@@ -60,6 +102,7 @@ int main2()//2
 		//cv::waitKey(0);
 	}
 	return 0;
+
 }
 
 int main()//1
@@ -70,123 +113,80 @@ int main()//1
 	//appearance: w1 alpha beta , combine color(alpha) and location(beta)
 	//location smoothness: w2 gama
 	//color similarity: w3 mu	
-	FineValue fineval(0, 0, 3, 40, 63, 6, 43, 2);//6,10,2,20,33,3,43
+	//FineValue fineval(0, 0, 3, 40, 63, 6, 43, 2);//6,10,2,20,33,3,43
+	//FineValue fineval(4/*w1*/, 0/*w2*/, 0/*w3*/, 40/*color(alpha)*/,
+	//	33/*location(beta)*/, 2/*smoothness*/, 40/*similarity*/, 4);
+
+	//good
+	//FineValue fineval(2.5/*w1*/, 0.5/*w2*/, 0/*w3*/, 0.3/*color(alpha)*/,
+	//	0.2/*location(beta)*/, 0.08/*smoothness*/, 0.1/*similarity*/, 2);
+
+	FineValue fineval(2.5/*w1*/, 0.5/*w2*/, 0/*w3*/, 0.3/*color(alpha)*/,
+		0.2/*location(beta)*/, 0.08/*smoothness*/, 0.1/*similarity*/, 2);
+	//FineValue fineval(10/*w1*/, 3/*w2*/, 3/*w3*/, 80/*color(alpha)*/,
+	//	30/*location(beta)*/, 30/*smoothness*/, 4/*similarity*/, 4);
 	cv::Mat unaryMap, unaFuse;
 	std::string jpgname;
 	std::cout << "\nplease input jpg number" << std::endl;
 	std::cin >> jpgname;
 	if (jpgname == "q") break;
 	//std::string jpgname = "137";
-	string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\Imgs\\";
-	//string filebase2 = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\prob\\";
+	//string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\Imgs\\";
+	string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\prob\\";
 	//string filebase = "E:\\lab\\C_C++\\semantic-segmentation\\salient\\images\\";
 	string pic = filebase + jpgname + ".jpg";
-	//string pic2 = filebase2 + jpgname + ".jpg";
-	//string pic = "..\\..\\MSRA10K_Imgs_GT\\Imgs\\" + jpgname + ".jpg";
-	initval.GetBgvalue(unaryMap, unaFuse, pic);
-	//initval2.GetBgvalue(unaryMap2, pic2);
-	//for (int i = 0; i < initval.m_info.numlabels; i++)
-	//{
-	//	unaFuse.at<float>(i) = exp(-settings_.k_ * dist[i]);
-	//}
-	//cv::Mat unafinal;
-	//cv::exp(unaFuse*3.0, unafinal);
-	//cv::multiply(unaryMap, unafinal, unafinal);
-	//cv::normalize(unafinal, unafinal, 0.0, 1.0, NORM_MINMAX);
-
-	//continue;
-
-	//////////////////////////////////////////////////////////////////////////
-	//double uMean = cv::mean(unaryMap)[0];
-	////double uMin, uMax;
-	////cv::minMaxLoc(unaryMap, &uMin, &uMax);
-
-	//double a1 = uMean;// *2.0 / 3.0;//b1=1.0
-	//double b2 = 1 - uMean / 5.0;
-	//double a2 = (a1 + 1 - uMean / 3.0) / 2.0;
-	//double tp = (b2 - a2) / (1 - uMean);
-	//cv::Mat una2;
-	//cv::Mat msk = unaryMap > a1;
-	//cv::Mat msk2 = unaryMap <= a1;
-	//cv::subtract(unaryMap,a1,una2,msk);
-	//cv::subtract(una2, una2, una2, msk2);
-	//una2 = una2*tp;
-	//cv::add(una2, a2, una2, msk);
-	//cv::add(una2, unaryMap, una2, msk2);
-
-
-	//(unaryMap - uMean) / (1 - uMean)*(b2 - a2) + a2;
-
-	//illustrate unary map
 	cv::Mat img = cv::imread(pic);
-	//cv::Mat illUnary(img.size(), CV_32F);
-	cv::Mat illUnary2(img.size(), CV_32F);
-	//cv::Mat illUnaryfinal(img.size(), CV_32F);
-	for (int i = 0; i < initval.m_info.numlabels_; i++)
-	{
-		for (auto ite = initval.m_info.sps_[i].begin(); ite < initval.m_info.sps_[i].end(); ite++)
-		{
-			//illUnary.at<float>((*ite).y, (*ite).x) = unaFuse.at<float>(i);
-			illUnary2.at<float>((*ite).y, (*ite).x) = unaryMap.at<float>(i);
-			//illUnaryfinal.at<float>((*ite).y, (*ite).x) = unafinal.at<float>(i);
-		}
-	}
+	//cv::Mat img;
+	//InitValue::enhanceWithGuidedFilter(img_ori, img);
+	cv::Mat imgrm;
+	cv::Rect rect;
+	bool rm = InitValue::removeFrame(img, imgrm, rect);
+	//bool rm = false;
+	initval.GetBgvalue(unaryMap, unaFuse, imgrm, false);
+
 
 	cv::Mat illmor;
-	InitValue::morphSmooth(illUnary2,illmor);
-	//double m_sal = 0.1 * img.cols*img.rows;
-	//for (float sm = sum(illUnary)[0]; sm < m_sal; sm = sum(illUnary)[0])
-	//	illUnary = min(illUnary*m_sal / sm, 1.0f);
+	InitValue::morphSmooth(unaryMap,illmor);
 
-	////cv::Mat imr;
-	////illUnary.convertTo(imr, CV_8U,255.0);
-	////cv::imshow("unary map", illUnary);
-	////cv::waitKey(0);
+	cv::Mat fineMap;
+	//fineval.getFineVal(initval, illmor, fineMap);
+	Automata automata;
+	automata.work(illmor, initval, fineMap);
+	
+	if (rm)
+	{
+		cv::Mat tmat;
+		tmat = cv::Mat::zeros(img.size(), CV_32F);
+		illmor.copyTo(tmat(rect));
+		illmor = tmat;
+		tmat = cv::Mat::zeros(img.size(), CV_32F);
+		fineMap.copyTo(tmat(rect));
+		fineMap = tmat;
+	}
+	//InitValue::morphSmooth(fineMap, fineMap);
 
-	////bool res = cv::imwrite("..\\..\\result\\"+jpgname+".png", imr);
-	////std::cout << "finished "<<res << std::endl;
-	////std::cin.get();
-	////return 0;
+	
+	cv::Mat IMGSHOW = cv::Mat::zeros(2 * img.rows + 5, 2 * img.cols + 5, CV_8UC3);
+	img.copyTo(IMGSHOW(cv::Rect(0, 0, img.cols, img.rows)));
+	
+	//img.copyTo(IMGSHOW(cv::Rect(img.cols + 4, 0, img.cols, img.rows)));
 
-	//cv::Mat thresMap;
-	//double imMean = 1.8 * cv::mean(illUnary)[0];
 
-	//cv::exp((illUnary - imMean)*(-20.0), thresMap);
-	//thresMap = 1.0 / (1.0 + thresMap);
-	//cv::normalize(thresMap, thresMap, 0.0, 1.0, NORM_MINMAX);
+	beshowable(illmor);
+	illmor.copyTo(IMGSHOW(cv::Rect(0, img.rows + 4, illmor.cols, illmor.rows)));
 
-	//illUnary.convertTo(thresMap, CV_8U, 255.0);
-	//cv::threshold(illUnary, thresMap, imMean, 1.0, CV_THRESH_BINARY);
-	cv::imshow("original", img);	
-	//cv::imshow("spatial map", illUnary);
-	cv::imshow("illmor", illmor);
-	cv::imshow("unary map", illUnary2);
-	//cv::imshow("unary final", illUnaryfinal);
+	beshowable(fineMap);
+	fineMap.copyTo(IMGSHOW(cv::Rect(img.cols + 4, img.rows + 4, fineMap.cols, fineMap.rows)));
+
+	cv::imshow("original adn results", IMGSHOW);
+	//cv::imshow("unary Map", unaryMap);
+	//cv::imshow("mor map", illmor);
+	//cv::imshow("unary2 map", illUna2);
+	//cv::imshow("final map", fineMap);
 	cv::waitKey(0);
-		//break;
 	}
 	return 0;
 
-	//fineval.getFineVal(initval,unaryMap);
-	////fineval.getFineVal(initval, una2);
-
-	////illustrate final map
-	//cv::Mat illFinal(img.size(), CV_32F);
-	//for (int i = 0; i < initval.m_info.numlabels; i++)
-	//{
-	//	for (auto ite = initval.m_info.sps[i].begin(); ite < initval.m_info.sps[i].end(); ite++)
-	//	{
-
-	//		illFinal.at<float>((*ite).y, (*ite).x) = fineval.resLabels.at<float>(i);
-	//	}
-	//}
-	//cv::imshow("original", img);
-	//cv::imshow("unary map", illUnary);
-	////cv::imshow("unary2 map", illUna2);
-	//cv::imshow("final map", illFinal);
-	//cv::waitKey(0);
-
-	return 0;
 }
 
 int main0()//0

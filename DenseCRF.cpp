@@ -151,40 +151,112 @@ void DenseCRF::addPairwiseEnergy ( PairwisePotential* potential ){
 }
 
 //spsfea: [L a b sx sy pixelNumber isborder]
-void DenseCRF2D::addPairwiseGaussian(float sx, float sy, unsigned int** spsfea, float w, const SemiMetricFunction * function) {
-	float * feature = new float [N_*2];
-	for( int j=0; j<N_; j++ ){
-		feature[j * 2 + 0] = spsfea[j][3] / sx;
-		feature[j * 2 + 1] = spsfea[j][4] / sy;
+void DenseCRF2D::addPairwiseGaussian(float w, float sx, float sy,
+	const InitValue& initVal, bool usePixel, const SemiMetricFunction * function) {
+	if (usePixel)
+	{
+		int W = initVal.m_info.width_;
+		int H = initVal.m_info.height_;
+		int tM = max(W, H);
+		assert(N_ == W*H);
+		float * feature = new float[N_ * 2];
+		for (int j = 0; j < H; j++)
+			for (int i = 0; i < W; i++){
+				feature[(j*W + i) * 2 + 0] = i / (tM * sx);
+				feature[(j*W + i) * 2 + 1] = j / (tM * sy);
+			}
+		addPairwiseEnergy(feature, 2, w, function);
+		delete[] feature;
 	}
-	addPairwiseEnergy( feature, 2, w, function );
-	delete [] feature;
-}
-void DenseCRF2D::addPairwiseBilateral(float sx, float sy, float sr, float sg, float sb, unsigned int** spsfea, float w, const SemiMetricFunction * function) {
-
-	float * feature = new float [N_*5];
-	for (int j = 0; j < N_; j++){
-		feature[j * 5 + 0] = spsfea[j][3] / sx;
-		feature[j * 5 + 1] = spsfea[j][4] / sy;
-		feature[j * 5 + 2] = spsfea[j][0] / sr;//L
-		feature[j * 5 + 3] = spsfea[j][1] / sg;//a
-		feature[j * 5 + 4] = spsfea[j][2] / sb;//b
+	else
+	{
+		assert(N_ == initVal.m_info.numlabels_);
+		float * feature = new float[N_ * 2];
+		for (int j = 0; j < N_; j++){
+			//position [0 1]
+			feature[j * 2 + 0] = initVal.m_info.features_[j].mean_position_[0] / sx;
+			feature[j * 2 + 1] = initVal.m_info.features_[j].mean_position_[1] / sy;
+		}
+		addPairwiseEnergy(feature, 2, w, function);
+		delete[] feature;
 	}
+	
+}
+void DenseCRF2D::addPairwiseBilateral(float w, float sx, float sy, float sr, float sg, float sb,
+	const InitValue& initVal, bool usePixel, const SemiMetricFunction * function) {
+	if (usePixel)
+	{
+		int W = initVal.m_info.width_;
+		int H = initVal.m_info.height_;
+		int tM = max(W, H);
+		assert(N_ == W*H);
 
-	addPairwiseEnergy( feature, 5, w, function );
-	delete [] feature;
+		float * feature = new float[N_ * 5];
+		//const unsigned char* im = (unsigned char*)initVal.m_info.imBgr_.data;
+		const float* im = (float*)initVal.m_info.imNormLab_.data;
+		for (int j = 0; j < H; j++)
+			for (int i = 0; i < W; i++){
+				feature[(j*W + i) * 5 + 0] = i / (tM * sx);
+				feature[(j*W + i) * 5 + 1] = j / (tM * sy);
+				feature[(j*W + i) * 5 + 2] = im[(i + j*W) * 3 + 0] / sb;
+				feature[(j*W + i) * 5 + 3] = im[(i + j*W) * 3 + 1] / sg;
+				feature[(j*W + i) * 5 + 4] = im[(i + j*W) * 3 + 2] / sr;
+			}
+		addPairwiseEnergy(feature, 5, w, function);
+		delete[] feature;
+	}
+	else
+	{
+		assert(N_ == initVal.m_info.numlabels_);
+		float * feature = new float[N_ * 5];
+		for (int j = 0; j < N_; j++){
+			feature[j * 5 + 0] = initVal.m_info.features_[j].mean_position_[0] / sx;
+			feature[j * 5 + 1] = initVal.m_info.features_[j].mean_position_[1] / sy;
+			feature[j * 5 + 2] = initVal.m_info.features_[j].mean_bgr_[2] / sr;//L
+			feature[j * 5 + 3] = initVal.m_info.features_[j].mean_bgr_[1] / sg;//a
+			feature[j * 5 + 4] = initVal.m_info.features_[j].mean_bgr_[0] / sb;//b
+		}
+
+		addPairwiseEnergy(feature, 5, w, function);
+		delete[] feature;
+	}
+	
 }
 
-void DenseCRF2D::addPairwiseColorGaussian(float sr, float sg, float sb, unsigned int** spsfea, float w, const SemiMetricFunction * function)
+void DenseCRF2D::addPairwiseColorGaussian(float w, float sr, float sg, float sb,
+	const InitValue& initVal, bool usePixel, const SemiMetricFunction * function)
 {
-	float * feature = new float[N_ * 3];
-	for (int j = 0; j < N_; j++){
-		feature[j * 3 + 0] = spsfea[j][0] / sr;
-		feature[j * 3 + 1] = spsfea[j][1] / sg;
-		feature[j * 3 + 2] = spsfea[j][2] / sb;
+	if (usePixel)
+	{
+		int W = initVal.m_info.width_;
+		int H = initVal.m_info.height_;
+		assert(N_ == W*H);
+		
+		float * feature = new float[N_ * 3];
+		//const unsigned char* im = (unsigned char*)initVal.m_info.imBgr_.data;
+		const float* im = (float*)initVal.m_info.imNormLab_.data;
+		for (int j = 0; j < H; j++)
+			for (int i = 0; i < W; i++){
+				feature[(j*W + i) * 3 + 0] = im[(i + j*W) * 3 + 0] / sb;
+				feature[(j*W + i) * 3 + 1] = im[(i + j*W) * 3 + 1] / sg;
+				feature[(j*W + i) * 3 + 2] = im[(i + j*W) * 3 + 2] / sr;
+			}
+		addPairwiseEnergy(feature, 3, w, function);
+		delete[] feature;
 	}
-	addPairwiseEnergy(feature, 3, w, function);
-	delete[] feature;
+	else
+	{
+		assert(N_ == initVal.m_info.numlabels_);
+		float * feature = new float[N_ * 3];
+		for (int j = 0; j < N_; j++){
+			feature[j * 3 + 0] = initVal.m_info.features_[j].mean_bgr_[2] / sr;
+			feature[j * 3 + 1] = initVal.m_info.features_[j].mean_bgr_[1] / sg;
+			feature[j * 3 + 2] = initVal.m_info.features_[j].mean_bgr_[0] / sb;
+		}
+		addPairwiseEnergy(feature, 3, w, function);
+		delete[] feature;
+	}
+	
 
 }
 

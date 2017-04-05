@@ -1,15 +1,22 @@
 #include"InitValue.h"
 #include"permutohedral.h"
+#include"vincent11.c"
 #include<map>
 #include<algorithm>
 #include<functional>
 
-void InitValue::GetBgvalue(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic)
+#define MAX_IMG_DIM 300
+#define TOLERANCE 0.01
+#define FRAME_MAX 20
+#define SOBEL_THRESH 0.4
+
+
+void InitValue::GetBgvalue(cv::Mat& unaryMap, cv::Mat& unaFuse, const cv::Mat& im, bool usePixel)
 {
 	//string pic = "..\\..\\MSRA10K_Imgs_GT\\Imgs\\938.jpg";
-	int spcount = 300;
-	double compactness = 20.0;
-	this->m_info.GetInfomation(pic, spcount, compactness);
+	int spcount = 200;//300
+	double compactness = 20.0;//20
+	this->m_info.GetInfomation(im, spcount, compactness);
 
 	getIdxs();
 
@@ -43,12 +50,12 @@ void InitValue::GetBgvalue(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::strin
 
 
 	//getSalFromClusteredBorder(unaryMap);
-	getSalFromGmmBorder(unaryMap, unaFuse, pic);
+	getSalFromGmmBorder(unaryMap, unaFuse, usePixel);
 
 	return;
 }
 
-void InitValue::getIdxs()
+void InitValue::getIdxs(bool indx2)
 {
 	if (m_borderIdx.size() > 0 || m_innerIdx.size() > 0) return;
 
@@ -64,6 +71,18 @@ void InitValue::getIdxs()
 		}
 	}
 	
+	if (indx2)
+	{
+		getIdxs2();
+	}
+}
+
+void InitValue::getIdxs2()
+{
+	assert(m_borderIdx.size() > 0);
+
+	m_info.getNeighbor(m_info.labelsbuf_);
+
 	m_borderIdx2.clear();
 	for (auto i : m_borderIdx)
 	{
@@ -72,6 +91,33 @@ void InitValue::getIdxs()
 			m_borderIdx2.insert(j);
 		}
 	}
+}
+
+void InitValue::getNeighborCnt()
+{
+	//m_info.getNeighborCnt();
+
+	if (m_info.nbCnt_) return;
+	m_info.getNeighbor(m_info.labelsbuf_);
+
+	for (int i = 0; i < m_info.numlabels_; i++)
+	{
+		m_info.features_[i].neighborCnt_.clear();
+		for (auto j : m_info.features_[i].neighbor_)
+		{
+			m_info.features_[i].neighborCnt_.insert(j);
+		}
+	}
+
+	for (auto i : m_borderIdx)
+	{
+		for (auto j : m_borderIdx)
+		{
+			m_info.features_[i].neighborCnt_.insert(j);
+		}
+	}
+
+	m_info.nbCnt_ = true;
 }
 
 void InitValue::clusterBorder(cv::Mat& borderlabels, std::vector<cv::Vec3f>& border)
@@ -285,16 +331,11 @@ void InitValue::getSalFromClusteredBorder(cv::Mat& unaryMap, bool illustrate)
 	//}
 }
 
-void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic)
+void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, bool usePixel)
 {
-	//cv::Mat img0 = cv::imread(pic);
-	//cv::Mat img;
-	//cv::cvtColor(img0, img, CV_BGR2Lab);
 	cv::Mat segVal1f = cv::Mat::zeros(m_info.imNormLab_.size(), CV_32F);
-	//cv::Mat imgBGR3f;
-	//img.convertTo(imgBGR3f, CV_32FC3, 1 / 255.0);
-	//for (int i = 0; i < m_borderIdx.size(); i++)
-	for (auto i:m_borderIdx)
+
+	for (auto i : m_borderIdx)
 	{
 		for (auto ite = m_info.sps_[i].begin();
 			ite < m_info.sps_[i].end(); ite++)
@@ -308,6 +349,7 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const s
 
 	const CmGaussian<3>* cmGuass = _bGMM.GetGaussians();
 
+#pragma region illustrate cluster results
 	//illustrate cluster results
 	//std::vector<cv::Mat> illmap(_bGMM.K());
 	//for (int i = 0; i < _bGMM.K(); i++)
@@ -340,62 +382,63 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const s
 	//}
 	//cv::waitKey(0);
 	//return;
+#pragma endregion
 
-	unaryMap = cv::Mat::zeros(1, m_info.numlabels_, CV_32F);
-	std::vector<cv::Mat> unaMap(_bGMM.K());
-	for (int i = 0; i < unaMap.size(); i++) unaMap[i] = cv::Mat::zeros(1, m_info.numlabels_, CV_32F);
+	if (usePixel)
+	{
+		unaryMap = cv::Mat::zeros(m_info.imNormLab_.size(), CV_32F);
+	}
+	else
+	{
+		unaryMap = cv::Mat::zeros(1, m_info.numlabels_, CV_32F);
+	}
 	
-	//std::map<double, int, std::greater<double>> dnIds;
-	//for (int i = 0; i < _bGMM.K(); i++)
-	//{
-	//	dnIds.insert(std::make_pair(cmGuass[i].w, i));
-	//}
+	//
+	std::vector<cv::Mat> unaMap(_bGMM.K());
+	for (int i = 0; i < unaMap.size(); i++) unaMap[i] = cv::Mat::zeros(unaryMap.size(), CV_32F);
+	//for (int i = 0; i < unaMap.size(); i++) unaMap[i] = cv::Mat::zeros(1, m_info.numlabels_, CV_32F);
+	
 	double posW[2];
 	double suM(0);
-	//auto ite = dnIds.begin();
-	//for (int i = 0; i < 3; i++, ite++) suM += cmGuass[ite->second].w;
-	//ite = dnIds.begin();
-	//for (int i = 0; i < 2; i++, ite++) posW[i] = cmGuass[ite->second].w;// / suM;
 
-	//float dot[3];
-	//float* unabuf = unaryMap.ptr<float>(0);
-	for (int i = 0; i < m_info.numlabels_; i++)
+	if (usePixel)
 	{
-		//dot[0] = m_info.features[i][0] / 255.0;//B or L
-		//dot[1] = m_info.features[i][1] / 255.0;//G or a
-		//dot[2] = m_info.features[i][2] / 255.0;//R or b
-		
-
-		//suM = 0;
-		//ite = dnIds.begin();
-		//for (int j = 0; j < 2; j++, ite++)
-		//{
-		//	suM += posW[j] * _bGMM.P(ite->second, dot);
-		//}
-
-		//*(unabuf + i) = 1-suM;
-		for (int j = 0; j < _bGMM.K(); j++)
+		for (int i = 0; i < unaryMap.rows; i++)
 		{
-			unaMap[j].at<float>(i) = _bGMM.P(j, m_info.features_[i].mean_normlab_);
+			for (int j = 0; j < unaryMap.cols; j++)
+			{
+				for (int k = 0; k < _bGMM.K(); k++)
+				{
+					unaMap[k].at<float>(i, j) = _bGMM.P(k, m_info.imNormLab_(i, j));
+				}
+			}
 		}
 	}
+	else
+	{
+		for (int i = 0; i < m_info.numlabels_; i++)
+		{
+			for (int j = 0; j < _bGMM.K(); j++)
+			{
+				unaMap[j].at<float>(i) = _bGMM.P(j, m_info.features_[i].mean_normlab_);
+			}
+		}
+	}
+	
 
 	for (int i = 0; i < unaMap.size(); i++)
 	{
-		//unaMap[i] = 1 - unaMap[i];
 		cv::normalize(unaMap[i], unaMap[i], 0.0, 1.0, NORM_MINMAX);
 		unaMap[i] = 1 - unaMap[i];
 	}
 
-	//unatotal = cv::Mat::zeros(1, m_info.numlabels, CV_32F);
 	for (int i = 0; i < unaMap.size(); i++)
 	{
 		cv::add(unaMap[i] * (cmGuass[i].w), unaryMap, unaryMap);
 	}
 	cv::normalize(unaryMap, unaryMap, 0.0, 1.0, NORM_MINMAX);
-	//cv::normalize(unaryMap, unaryMap, 0.0, 1.0, NORM_MINMAX);
-	//unaryMap = 1 - unaryMap;
 
+#pragma region illustrate each map
 	//illustrate each map relative to each cluster
 	//std::vector<cv::Mat> illu(unaMap.size());
 	//cv::Mat illtotal(img.size(), CV_32F);
@@ -418,6 +461,21 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, const s
 	////}
 	//cv::imshow("illutotal", illtotal);
 	//cv::waitKey(0);
+#pragma endregion
+
+	if (!usePixel)
+	{
+		cv::Mat illu(m_info.imNormLab_.size(), CV_32F);
+		for (int i = 0; i < m_info.numlabels_; i++)
+		{
+			for (auto j : m_info.sps_[i])
+			{
+				illu.at<float>(j.y, j.x) = unaryMap.at<float>(i);
+			}
+		}
+		unaryMap = illu;
+	}
+	
 	enhance(unaryMap);
 	//fuseSpatial(unaryMap, unaFuse, pic);
 	//enhance(unaFuse, 1.0);
@@ -543,14 +601,15 @@ void InitValue::fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::stri
 
 void InitValue::enhance(cv::Mat& unaryMap, double fct)
 {
-	CV_Assert(unaryMap.cols == m_info.numlabels_);
+	//CV_Assert(unaryMap.cols == m_info.numlabels_);
 	cv::Mat thresMap;
-	double s = 0;
-	for (int i = 0; i < unaryMap.cols; i++)
-	{
-		s += m_info.features_[i].size_ * unaryMap.at<float>(i);
-	}
-	double imMean = fct * s / (m_info.height_*m_info.width_);
+	//double s = 0;
+	//for (int i = 0; i < unaryMap.cols; i++)
+	//{
+	//	s += m_info.features_[i].size_ * unaryMap.at<float>(i);
+	//}
+	//double imMean = fct * s / (m_info.height_*m_info.width_);
+	double imMean = fct * cv::mean(unaryMap)[0];
 
 	cv::exp((unaryMap - imMean)*(-20.0), thresMap);
 	thresMap = 1.0 / (1.0 + thresMap);
@@ -584,4 +643,204 @@ void InitValue::morphSmooth(const cv::Mat& dMap, cv::Mat& dst)
 	cv::normalize(Iobrcbr, dst, 0.0, 1.0, cv::NORM_MINMAX);
 	//Iobrcbr.copyTo(dMap);
 	return;
+}
+
+cv::Mat InitValue::boxfilter(const cv::Mat& imSrc, int r)
+{
+	assert(imSrc.channels() == 1);
+	int hei = imSrc.rows;
+	int wid = imSrc.cols;
+
+	cv::Mat imDst = cv::Mat::zeros(imSrc.size(), CV_32F);
+
+	//cumulative sum over Y axis
+	//cv::Mat tmat = imSrc.t();
+	cv::Mat imCum = imSrc.t();
+
+	for (int j = 0; j < imCum.rows; j++)
+	{
+		//const unsigned char* tmatbuf = tmat.ptr<unsigned char>(j);
+		float* cumbuf = imCum.ptr<float>(j);
+		for (int i = 1; i < imCum.cols; i++)
+		{
+			*(cumbuf + i) += *(cumbuf + i - 1);
+		}
+	}
+	imCum = imCum.t();
+
+	//difference over Y axis
+	imCum.rowRange(r, 2 * r + 1).copyTo(imDst.rowRange(0, r + 1));
+	cv::Mat tmat = imCum.rowRange(2 * r + 1, hei) - imCum.rowRange(0, hei - 2 * r - 1);
+	tmat.copyTo(imDst.rowRange(r + 1, hei - r));
+
+	tmat = cv::repeat(imCum.row(hei - 1), r, 1) - imCum.rowRange(hei - 2 * r - 1, hei - r - 1);
+	tmat.copyTo(imDst.rowRange(hei - r, hei));
+
+	//cumulative sum over X axis
+	imCum = imDst.clone();
+	for (int j = 0; j < imCum.rows; j++)
+	{
+		float* cumbuf = imCum.ptr<float>(j);
+		for (int i = 1; i < imCum.cols; i++)
+		{
+			*(cumbuf + i) += *(cumbuf + i - 1);
+		}
+	}
+
+	//difference over Y axis
+	imCum.colRange(r, 2 * r + 1).copyTo(imDst.colRange(0, r + 1));
+	tmat = imCum.colRange(2 * r + 1, wid) - imCum.colRange(0, wid - 2 * r - 1);
+	tmat.copyTo(imDst.colRange(r + 1, wid - r));
+	tmat = cv::repeat(imCum.col(wid - 1), 1, r) - imCum.colRange(wid - 2 * r - 1, wid - r - 1);
+	tmat.copyTo(imDst.colRange(wid - r, wid));
+
+	return imDst;
+}
+
+cv::Mat InitValue::fastguidedfilter(const cv::Mat& I, const cv::Mat& p, int r, double eps, int s)
+{
+	cv::Mat I_sub, P_sub;
+	double fct = 1.0 / s;
+	cv::resize(I, I_sub, cv::Size(0,0), fct, fct, INTER_NEAREST);
+	cv::resize(p, P_sub, cv::Size(0, 0), fct, fct, INTER_NEAREST);
+
+	int r_sub = r / s;
+
+	int hei = I_sub.rows;
+	int wid = I_sub.cols;
+
+	cv::Mat N = boxfilter(cv::Mat::ones(hei, wid, CV_32F), r_sub);
+
+
+	cv::Mat mean_I = boxfilter(I_sub, r_sub) / N;
+	cv::Mat mean_P = boxfilter(P_sub, r_sub) / N;
+	cv::Mat mean_Ip = boxfilter(I_sub.mul(P_sub), r_sub) / N;
+	cv::Mat cov_Ip = mean_Ip - mean_I.mul(mean_P);
+
+	
+
+	cv::Mat mean_II = boxfilter(I_sub.mul(I_sub), r_sub) / N;
+	cv::Mat var_I = mean_II - mean_I.mul(mean_I);
+
+	cv::Mat a = cov_Ip / (var_I + eps);
+	cv::Mat b = mean_P - a.mul(mean_I);
+
+	cv::Mat mean_a = boxfilter(a, r_sub) / N;
+	cv::Mat mean_b = boxfilter(b, r_sub) / N;
+
+	cv::resize(mean_a, mean_a, I.size(), 0, 0, INTER_LINEAR);
+	cv::resize(mean_b, mean_b, I.size(), 0, 0, INTER_LINEAR);
+
+	cv::Mat tmat;
+	I.convertTo(tmat, CV_32F);
+	cv::Mat q = mean_a.mul(tmat) + mean_b;
+
+	return q;
+}
+
+void InitValue::enhanceWithGuidedFilter(const cv::Mat& I, cv::Mat& dst)
+{
+	assert(I.type() == CV_8UC3);
+
+	cv::Mat dI;
+	I.convertTo(dI, CV_32F, 1/255.0);
+	std::vector<cv::Mat> mv;
+	cv::split(dI, mv);
+
+	int r = 16;
+	double eps = 0.01;
+	int s = 4;
+
+	for (int i = 0; i < mv.size(); i++)
+	{
+		mv[i] = fastguidedfilter(mv[i], mv[i], r, eps, s);
+	}
+
+	cv::merge(mv, dst);
+	dst.convertTo(dst, CV_8U, 255.0);
+}
+
+bool InitValue::removeFrame(const cv::Mat& inImg, cv::Mat& outImg, cv::Rect &roi)
+{
+	assert(inImg.type() == CV_8UC3);
+	if (inImg.rows < 2 * (FRAME_MAX + 3) || inImg.cols < 2 * (FRAME_MAX + 3))
+	{
+		roi = cv::Rect(0, 0, inImg.cols, inImg.rows);
+		outImg = inImg;
+		return false;
+	}
+
+	cv::Mat imgGray;
+	cvtColor(inImg, imgGray, CV_BGR2GRAY);
+
+	int up, dn, lf, rt;
+
+	up = findFrameMargin(imgGray.rowRange(0, FRAME_MAX), false);
+	dn = findFrameMargin(imgGray.rowRange(imgGray.rows - FRAME_MAX, imgGray.rows), true);
+	lf = findFrameMargin(imgGray.colRange(0, FRAME_MAX).t(), false);
+	rt = findFrameMargin(imgGray.colRange(imgGray.cols - FRAME_MAX, imgGray.cols).t(), true);
+
+	int margin = MAX(up, MAX(dn, MAX(lf, rt)));
+	if (margin == 0)
+	{
+		roi = cv::Rect(0, 0, imgGray.cols, imgGray.rows);
+		outImg = inImg;
+		return false;
+	}
+
+	int count = 0;
+	count = up == 0 ? count : count + 1;
+	count = dn == 0 ? count : count + 1;
+	count = lf == 0 ? count : count + 1;
+	count = rt == 0 ? count : count + 1;
+
+	// cut four border region if at least 2 border frames are detected
+	if (count > 1)
+	{
+		margin += 2;
+		roi = cv::Rect(margin, margin, inImg.cols - 2 * margin, inImg.rows - 2 * margin);
+		outImg = cv::Mat(inImg, roi);
+
+		return true;
+	}
+
+	// otherwise, cut only one border
+	up = up == 0 ? up : up + 2;
+	dn = dn == 0 ? dn : dn + 2;
+	lf = lf == 0 ? lf : lf + 2;
+	rt = rt == 0 ? rt : rt + 2;
+
+
+	roi = cv::Rect(lf, up, inImg.cols - lf - rt, inImg.rows - up - dn);
+	outImg = cv::Mat(inImg, roi);
+
+	return true;
+}
+
+int InitValue::findFrameMargin(const cv::Mat& img, bool reverse)
+{
+	cv::Mat edgeMap, edgeMapDil, edgeMask;
+	Sobel(img, edgeMap, CV_16SC1, 0, 1);
+	edgeMap = abs(edgeMap);
+	edgeMap.convertTo(edgeMap, CV_8UC1);
+	edgeMask = edgeMap < (SOBEL_THRESH * 255.0);
+	dilate(edgeMap, edgeMapDil, cv::Mat(), cv::Point(-1, -1), 2);
+	edgeMap = edgeMap == edgeMapDil;
+	edgeMap.setTo(Scalar(0.0), edgeMask);
+
+
+	if (!reverse)
+	{
+		for (int i = edgeMap.rows - 1; i >= 0; i--)
+			if (mean(edgeMap.row(i))[0] > 0.6*255.0)
+				return i + 1;
+	}
+	else
+	{
+		for (int i = 0; i < edgeMap.rows; i++)
+			if (mean(edgeMap.row(i))[0] > 0.6*255.0)
+				return edgeMap.rows - i;
+	}
+
+	return 0;
 }
