@@ -14,7 +14,7 @@
 void InitValue::GetBgvalue(cv::Mat& unaryMap, cv::Mat& unaFuse, const cv::Mat& im, bool usePixel)
 {
 	//string pic = "..\\..\\MSRA10K_Imgs_GT\\Imgs\\938.jpg";
-	int spcount = 200;//300
+	int spcount = 300;//300
 	double compactness = 20.0;//20
 	this->m_info.GetInfomation(im, spcount, compactness);
 
@@ -80,6 +80,7 @@ void InitValue::getIdxs(bool indx2)
 void InitValue::getIdxs2()
 {
 	assert(m_borderIdx.size() > 0);
+	assert(m_info.nb_&&!m_info.nbCnt_);
 
 	m_info.getNeighbor(m_info.labelsbuf_);
 
@@ -100,22 +101,46 @@ void InitValue::getNeighborCnt()
 	if (m_info.nbCnt_) return;
 	m_info.getNeighbor(m_info.labelsbuf_);
 
+	for (auto i : m_borderIdx)
+	{
+		for (auto j : m_borderIdx)
+		{
+			if (j != i)
+			{
+				m_info.features_[i].neighbor_.insert(j);
+				m_info.features_[j].neighbor_.insert(i);
+			}
+		}
+	}
+
 	for (int i = 0; i < m_info.numlabels_; i++)
 	{
 		m_info.features_[i].neighborCnt_.clear();
 		for (auto j : m_info.features_[i].neighbor_)
 		{
 			m_info.features_[i].neighborCnt_.insert(j);
+			for (auto k : m_info.features_[j].neighbor_)
+			{
+				if (k != i)
+				{
+					m_info.features_[i].neighborCnt_.insert(k);
+				}
+			}
+			
 		}
 	}
 
-	for (auto i : m_borderIdx)
-	{
-		for (auto j : m_borderIdx)
-		{
-			m_info.features_[i].neighborCnt_.insert(j);
-		}
-	}
+	//for (int i = 0; i < m_info.numlabels_; i++)
+	//{
+	//	m_info.features_[i].neighbor33_.clear();
+	//	for (auto j : m_info.features_[i].neighborCnt_)
+	//	{
+	//		for (auto k : m_info.features_[j].neighbor_)
+	//		{
+	//			m_info.features_[i].neighbor33_.insert(k);
+	//		}
+	//	}
+	//}
 
 	m_info.nbCnt_ = true;
 }

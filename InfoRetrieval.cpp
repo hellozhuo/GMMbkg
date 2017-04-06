@@ -27,23 +27,24 @@ void InfoRetrieval::GetInfomation(const cv::Mat& im, int spcount, double compact
 	//auto labelsbuf = labels.get();
 	
 	//DestroyFeatures();
-	//slic.DoSuperpixelSegmentation_ForGivenNumberOfSuperpixels(img,
-	//	width_, height_, labelsbuf, numlabels_, spcount, compactness);
+	slic.DoSuperpixelSegmentation_ForGivenNumberOfSuperpixels(img,
+		width_, height_, labelsbuf, numlabels_, spcount, compactness);
 
-	std::ifstream fil("E:\\lab\\C_C++\\saliency-detection\\code\\automata\\superpixels\\0042.dat", std::ios_base::binary);
-	labelsbuf = new int[sz];
-	fil.read((char*)labelsbuf, sz*sizeof(int));
-	numlabels_ = 0;
-	for (int i = 0; i < sz; i++)
-	{
-		int a = *(labelsbuf + i);
-		if (a > numlabels_) numlabels_ = a;
-	}
-	numlabels_++;
-	fil.close();
+	//std::ifstream fil("E:\\lab\\C_C++\\saliency-detection\\code\\automata\\superpixels\\0042.dat", std::ios_base::binary);
+	//labelsbuf = new int[sz];
+	//fil.read((char*)labelsbuf, sz*sizeof(int));
+	//numlabels_ = 0;
+	//for (int i = 0; i < sz; i++)
+	//{
+	//	int a = *(labelsbuf + i);
+	//	if (a > numlabels_) numlabels_ = a;
+	//}
+	//numlabels_++;
+	//fil.close();
 	labelsbuf_ = labelsbuf;
+	labelsbuf = nullptr;
 
-	RetrieveOnSP(im,labelsbuf);
+	RetrieveOnSP(im,labelsbuf_);
 }
 
 //[L a b sx sy pixelNumber isborder] 7 dimensions
@@ -56,6 +57,7 @@ void InfoRetrieval::RetrieveOnSP(const cv::Mat_<cv::Vec3b>& im, const int* const
 	{
 		sps_[i].clear();
 		features_[i].neighbor_.clear();
+		features_[i].neighborCnt_.clear();
 	}
 
 	cv::Mat imLab3b;
@@ -103,42 +105,37 @@ void InfoRetrieval::RetrieveOnSP(const cv::Mat_<cv::Vec3b>& im, const int* const
 void InfoRetrieval::getNeighbor(const int* const labelsbuf)
 {
 	if (nb_) return;
-	int i, j, idx;
-	for (i = 0; i < height_; i++)
+	int i, j, idx1, idx2;
+	for (j = 0; j < height_ - 1; j++)
 	{
-		for (j = 0; j < width_; j++)
+		for (i = 0; i < width_ - 1; i++)
 		{
-			idx = *(labelsbuf + i*width_ + j);
+			idx1 = *(labelsbuf + j*width_ + i);
+			idx2 = *(labelsbuf + j*width_ + i + 1);
+			if (idx1 != idx2)
+			{
+				features_[idx1].neighbor_.insert(idx2);
+				features_[idx2].neighbor_.insert(idx1);
+			}
+			idx2 = *(labelsbuf + (j + 1)*width_ + i + 1);
+			if (idx1 != idx2)
+			{
+				features_[idx1].neighbor_.insert(idx2);
+				features_[idx2].neighbor_.insert(idx1);
+			}
+			idx2 = *(labelsbuf + (j + 1)*width_ + i);
+			if (idx1 != idx2)
+			{
+				features_[idx1].neighbor_.insert(idx2);
+				features_[idx2].neighbor_.insert(idx1);
+			}
 
-			int upright, right, downright, down;
-			upright = right = downright = down = idx;
-			if (j < width_ - 1)
+			idx1 = *(labelsbuf + j*width_ + i + 1);
+			idx2 = *(labelsbuf + (j + 1)*width_ + i);
+			if (idx1 != idx2)
 			{
-				right = *(labelsbuf + i*width_ + j + 1);
-				if (i > 0) upright = *(labelsbuf + (i - 1)*width_ + j + 1);
-				if (i < height_ - 1) downright = *(labelsbuf + (i + 1)*width_ + j + 1);
-			}
-			if (i < height_ - 1) down = *(labelsbuf + (i + 1)*width_ + j);
-			
-			if (idx != right)
-			{
-				features_[idx].neighbor_.insert(right);
-				features_[right].neighbor_.insert(idx);
-			}
-			if (idx != upright)
-			{
-				features_[idx].neighbor_.insert(upright);
-				features_[upright].neighbor_.insert(idx);
-			}
-			if (idx != downright)
-			{
-				features_[idx].neighbor_.insert(downright);
-				features_[downright].neighbor_.insert(idx);
-			}
-			if (idx != down)
-			{
-				features_[idx].neighbor_.insert(down);
-				features_[down].neighbor_.insert(idx);
+				features_[idx1].neighbor_.insert(idx2);
+				features_[idx2].neighbor_.insert(idx1);
 			}
 		}
 	}

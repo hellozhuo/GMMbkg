@@ -1,5 +1,6 @@
 
 #include"Automata.h"
+#include<fstream>
 
 void Automata::getInitSal(const cv::Mat& src, InitValue& initVal, cv::Mat_<float>& initSal)
 {
@@ -23,13 +24,18 @@ void Automata::getInitSal(const cv::Mat& src, InitValue& initVal, cv::Mat_<float
 
 cv::Mat_<float> Automata::getImpactM(InitValue& initVal)
 {
-	initVal.getNeighborCnt();
-	float valScale(-10.f);
-	float eps(1e-8);
+	const int N = initVal.m_info.numlabels_;
 	const int hei = initVal.m_info.height_;
 	const int wid = initVal.m_info.width_;
-	const int N = initVal.m_info.numlabels_;
+
+	initVal.getNeighborCnt();
+	float valScale(-10);
+	float eps(1e-8);	
+	
 	cv::Mat_<float> impactM = cv::Mat_<float>::zeros(N, N);
+
+	cv::Mat msk = cv::Mat::ones(impactM.size(), CV_8U) * 255;
+
 	for (int j = 0; j < N; j++)//first row to last row
 	{
 		for (int i = 0; i < j; i++)
@@ -38,37 +44,36 @@ cv::Mat_<float> Automata::getImpactM(InitValue& initVal)
 		}
 		for (auto inb : initVal.m_info.features_[j].neighborCnt_)
 		{
+			if (inb != j) msk.at<unsigned char>(j, inb) = 0;
+
+			//std::set<int, std::less<int>> diff;
+			//std::set_difference(initVal.m_info.features_[j].)
+
 			if (inb > j)
 			{
-				cv::Vec3f cdiff = initVal.m_info.features_[j].mean_normlab_ - initVal.m_info.features_[inb].mean_normlab_;
+				//if ()
+				cv::Vec3d cdiff = initVal.m_info.features_[j].mean_lab_ - initVal.m_info.features_[inb].mean_lab_;
 				impactM(j, inb) = sqrt(cdiff.dot(cdiff));
 			}
 		}
 	}
 
-	cv::normalize(impactM, impactM, 0.0, 1.0, NORM_MINMAX);
-	cv::Mat msk = impactM < eps;
+	cv::Mat rmsk = 255 - msk;
+	int a = sum(rmsk / 255)[0];
+
+	cv::normalize(impactM, impactM, 0.0, 1.0, NORM_MINMAX, -1, rmsk);
+	//
 	cv::exp(impactM*valScale, impactM);
 	cv::subtract(impactM, impactM, impactM, msk);
 
-	//calculate a row - normalized impact factor matrix
-	cv::Mat D_sum;
-	cv::reduce(impactM, D_sum, 1, CV_REDUCE_SUM);//reduce a column, sum of each row
-
-	D_sum = 1.f / D_sum;
-	cv::Mat D = cv::Mat::diag(D_sum);
-
-	cv::Mat re = D * impactM;
-	impactM = re;
-
 	return impactM;
+
 }
 
 cv::Mat_<float> Automata::getCoherenceM(const cv::Mat_<float>& impactM)
 {
 	float a = 0.6;
 	float b = 0.2; //[0.2 0.8]
-	//cv::Mat_<float> coherenceM(impactM.size());
 	cv::Mat C;
 	cv::reduce(impactM, C, 1, CV_REDUCE_MAX);//max of each row
 	C = 1.0 / C;
@@ -86,10 +91,23 @@ void Automata::work(const cv::Mat& src, InitValue& initVal, cv::Mat& dst)
 	cv::Mat_<float> initSal;
 	getInitSal(src, initVal, initSal);
 
-	cv::Mat_<float> impactM = getImpactM(initVal);
-	cv::Mat_<float> coherenceM = getCoherenceM(impactM);
+	cv::Mat_<float> impactM= getImpactM(initVal);
+	//std::ifstream fil("E:\\lab\\C_C++\\saliency-detection\\code\\automata\\superpixels\\0042_impF.dat", std::ios_base::binary);
+	//fil.read((char*)impactM.data, N*N*sizeof(double));
+	//fil.close();
 
-	inference(initVal, impactM, coherenceM, initSal);
+	//calculate a row - normalized impact factor matrix
+	cv::Mat D_sum;
+	cv::reduce(impactM, D_sum, 1, CV_REDUCE_SUM);//reduce a column, sum of each row
+
+	D_sum = 1.0 / D_sum;
+	cv::Mat D = cv::Mat::diag(D_sum);
+
+	cv::Mat normImpactM = D * impactM;
+
+	cv::Mat_<float> normCoherenceM = getCoherenceM(impactM);
+
+	inference(initVal, normImpactM, normCoherenceM, initSal);
 
 	dst = cv::Mat(src.size(), src.type());
 	for (int i = 0; i < N; i++)

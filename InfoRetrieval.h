@@ -33,6 +33,7 @@ struct SuperpixelInfo {
 	cv::Vec2f mean_position_;//[0 1]
 	std::set<int, std::less<int>> neighbor_;
 	std::set<int, std::less<int>> neighborCnt_;
+	std::set<int, std::less<int>> neighbor33_;
 	bool isborder_;
 	int size_;
 	SuperpixelInfo();

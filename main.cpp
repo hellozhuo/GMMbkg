@@ -172,7 +172,7 @@ int main()//1
 	//img.copyTo(IMGSHOW(cv::Rect(img.cols + 4, 0, img.cols, img.rows)));
 
 
-	beshowable(illmor);
+	beshowable(illmor);// , "E:\\lab\\C_C++\\saliency-detection\\code\\automata\\priormap\\0003.png", true);
 	illmor.copyTo(IMGSHOW(cv::Rect(0, img.rows + 4, illmor.cols, illmor.rows)));
 
 	beshowable(fineMap);
