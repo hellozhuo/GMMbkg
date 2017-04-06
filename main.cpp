@@ -25,6 +25,11 @@ void beshowable(cv::Mat& illmor, std::string jpgname = "", bool wr = false)
 	cv::merge(illmors, illmor);
 }
 
+//int main()//5
+//{
+//	cv::Mat 
+//}
+
 //using namespace Gdiplus;
 //using namespace std;
 int main4()//4
@@ -33,12 +38,19 @@ int main4()//4
 	cv::Mat re;
 	ma(0, 2) = 1;
 	ma(2, 2) = 3;
+	ma(0, 0) = 0.88;
+	ma(3, 2) = 2;
+	ma(3, 1) = 0.5;
+	re = cv::Mat::diag(ma.diag());
+	//re = ma.diag();
 	std::cout << ma << std::endl;
-	re = cv::Mat::ones(4, 1, CV_32F) * 2;
-	re = cv::Mat::diag(re);
-	std::cout << std::endl << re << std::endl;
-	ma = re*ma;
-	std::cout << std::endl << ma;
+	std::cout << re << std::endl;
+
+	//re = cv::Mat::ones(4, 1, CV_32F) * 2;
+	//re = cv::Mat::diag(re);
+	//std::cout << std::endl << re << std::endl;
+	//ma = re*ma;
+	//std::cout << std::endl << ma;
 	//cv::reduce(ma, re, 1, CV_REDUCE_SUM);
 	//re = ma > 0;
 	//re /= 255;
@@ -118,11 +130,11 @@ int main()//1
 	//	33/*location(beta)*/, 2/*smoothness*/, 40/*similarity*/, 4);
 
 	//good
-	//FineValue fineval(2.5/*w1*/, 0.5/*w2*/, 0/*w3*/, 0.3/*color(alpha)*/,
-	//	0.2/*location(beta)*/, 0.08/*smoothness*/, 0.1/*similarity*/, 2);
-
 	FineValue fineval(2.5/*w1*/, 0.5/*w2*/, 0/*w3*/, 0.3/*color(alpha)*/,
 		0.2/*location(beta)*/, 0.08/*smoothness*/, 0.1/*similarity*/, 2);
+
+	//FineValue fineval(2.5/*w1*/, 0.5/*w2*/, 0/*w3*/, 0.3/*color(alpha)*/,
+	//	0.2/*location(beta)*/, 0.08/*smoothness*/, 0.1/*similarity*/, 2);
 	//FineValue fineval(10/*w1*/, 3/*w2*/, 3/*w3*/, 80/*color(alpha)*/,
 	//	30/*location(beta)*/, 30/*smoothness*/, 4/*similarity*/, 4);
 	cv::Mat unaryMap, unaFuse;
@@ -132,8 +144,8 @@ int main()//1
 	if (jpgname == "q") break;
 	//std::string jpgname = "137";
 	//string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\Imgs\\";
-	string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\prob\\";
-	//string filebase = "E:\\lab\\C_C++\\semantic-segmentation\\salient\\images\\";
+	//string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\prob\\";
+	string filebase = "E:\\lab\\C_C++\\semantic-segmentation\\salient\\images\\";
 	string pic = filebase + jpgname + ".jpg";
 	cv::Mat img = cv::imread(pic);
 	//cv::Mat img;
@@ -142,16 +154,16 @@ int main()//1
 	cv::Rect rect;
 	bool rm = InitValue::removeFrame(img, imgrm, rect);
 	//bool rm = false;
-	initval.GetBgvalue(unaryMap, unaFuse, imgrm, false);
+	initval.GetBgvalue(unaryMap, unaFuse, imgrm, true);
 
 
 	cv::Mat illmor;
 	InitValue::morphSmooth(unaryMap,illmor);
 
 	cv::Mat fineMap;
-	//fineval.getFineVal(initval, illmor, fineMap);
+	fineval.getFineVal(initval, illmor, fineMap);
 	Automata automata;
-	automata.work(illmor, initval, fineMap);
+	//automata.work(illmor, initval, fineMap);
 	
 	if (rm)
 	{
@@ -180,10 +192,6 @@ int main()//1
 	fineMap.copyTo(IMGSHOW(cv::Rect(img.cols + 4, img.rows + 4, fineMap.cols, fineMap.rows)));
 
 	cv::imshow("original adn results", IMGSHOW);
-	//cv::imshow("unary Map", unaryMap);
-	//cv::imshow("mor map", illmor);
-	//cv::imshow("unary2 map", illUna2);
-	//cv::imshow("final map", fineMap);
 	cv::waitKey(0);
 	}
 	return 0;
