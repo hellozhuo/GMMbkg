@@ -159,9 +159,10 @@ int main()//1
 		tmat = cv::Mat::zeros(img.size(), CV_32F);
 		illmor.copyTo(tmat(rect));
 		illmor = tmat;
-		tmat = cv::Mat::zeros(img.size(), CV_32F);
-		fineMap.copyTo(tmat(rect));
-		fineMap = tmat;
+		cv::Mat tmat2;
+		tmat2 = cv::Mat::zeros(img.size(), CV_32F);
+		fineMap.copyTo(tmat2(rect));
+		fineMap = tmat2;
 	}
 	//InitValue::morphSmooth(fineMap, fineMap);
 
