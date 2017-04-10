@@ -29,11 +29,11 @@ std::unique_ptr<T[]> make_unique_array(size_t size)
 struct SuperpixelInfo {
 	cv::Vec3f mean_lab_;//L [0 100] a [-127 127] b [-127 127]
 	cv::Vec3f mean_normlab_;//[0 1]
-	cv::Vec3f mean_bgr_;//[0 255]
+	//cv::Vec3f mean_bgr_;//[0 255]
 	cv::Vec2f mean_position_;//[0 1]
 	std::set<int, std::less<int>> neighbor_;
 	std::set<int, std::less<int>> neighborCnt_;
-	std::set<int, std::less<int>> neighbor33_;
+	//std::set<int, std::less<int>> neighbor33_;
 	bool isborder_;
 	int size_;
 	SuperpixelInfo();
@@ -53,7 +53,7 @@ public:
 	int sz_;
 	cv::Mat_<cv::Vec3f> imLab_;//normal Lab range
 	cv::Mat_<cv::Vec3f> imNormLab_;//[0 1]
-	cv::Mat_<cv::Vec3b> imBgr_;//[0 255]
+	//cv::Mat_<cv::Vec3b> imBgr_;//[0 255]
 	//PictureHandler picHand_;
 	int* labelsbuf_;
 	bool nb_;

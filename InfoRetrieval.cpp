@@ -2,7 +2,7 @@
 #include<fstream>
 
 SuperpixelInfo::SuperpixelInfo()
-	:mean_lab_(0.f, 0.f, 0.f), mean_normlab_(0.f,0.f,0.f), mean_bgr_(0.f, 0.f, 0.f), mean_position_(0.f, 0.f), isborder_(false)
+	:mean_lab_(0.f, 0.f, 0.f), mean_normlab_(0.f,0.f,0.f), /*mean_bgr_(0.f, 0.f, 0.f),*/ mean_position_(0.f, 0.f), isborder_(false)
 {}
 
 void InfoRetrieval::GetInfomation(const cv::Mat& im, int spcount, double compactness)
@@ -61,7 +61,7 @@ void InfoRetrieval::RetrieveOnSP(const cv::Mat_<cv::Vec3b>& im, const int* const
 	}
 
 	cv::Mat imLab3b;
-	imBgr_ = im.clone();
+	//imBgr_ = im.clone();
 	cv::cvtColor(im, imLab3b, CV_BGR2Lab);
 	imLab3b.convertTo(imNormLab_, CV_32F, 1 / 255.0);
 
@@ -80,7 +80,7 @@ void InfoRetrieval::RetrieveOnSP(const cv::Mat_<cv::Vec3b>& im, const int* const
 			sps_[idx].push_back(cv::Point(j, i));
 			features_[idx].mean_lab_ += imLab_(i, j);
 			features_[idx].mean_normlab_ += imNormLab_(i, j);
-			features_[idx].mean_bgr_ += im(i, j);
+			//features_[idx].mean_bgr_ += im(i, j);
 			features_[idx].mean_position_ += cv::Vec2f(j, i);//x,y
 			tm_count[idx]++;
 			if (i == 0 || i == height_ - 1 || j == 0 || j == width_ - 1) features_[idx].isborder_ = true;
@@ -90,7 +90,7 @@ void InfoRetrieval::RetrieveOnSP(const cv::Mat_<cv::Vec3b>& im, const int* const
 	{
 		features_[i].mean_lab_ *= 1.0 / tm_count[i];
 		features_[i].mean_normlab_ *= 1.0 / tm_count[i];
-		features_[i].mean_bgr_ *= 1.0 / tm_count[i];
+		//features_[i].mean_bgr_ *= 1.0 / tm_count[i];
 		features_[i].mean_position_ *= 1.0 / tm_count[i];
 		features_[i].size_ = tm_count[i];
 	}

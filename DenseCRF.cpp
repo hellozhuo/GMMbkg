@@ -212,9 +212,9 @@ void DenseCRF2D::addPairwiseBilateral(float w, float sx, float sy, float sr, flo
 		for (int j = 0; j < N_; j++){
 			feature[j * 5 + 0] = initVal.m_info.features_[j].mean_position_[0] / sx;
 			feature[j * 5 + 1] = initVal.m_info.features_[j].mean_position_[1] / sy;
-			feature[j * 5 + 2] = initVal.m_info.features_[j].mean_bgr_[2] / sr;//L
-			feature[j * 5 + 3] = initVal.m_info.features_[j].mean_bgr_[1] / sg;//a
-			feature[j * 5 + 4] = initVal.m_info.features_[j].mean_bgr_[0] / sb;//b
+			//feature[j * 5 + 2] = initVal.m_info.features_[j].mean_bgr_[2] / sr;//L
+			//feature[j * 5 + 3] = initVal.m_info.features_[j].mean_bgr_[1] / sg;//a
+			//feature[j * 5 + 4] = initVal.m_info.features_[j].mean_bgr_[0] / sb;//b
 		}
 
 		addPairwiseEnergy(feature, 5, w, function);
@@ -249,9 +249,9 @@ void DenseCRF2D::addPairwiseColorGaussian(float w, float sr, float sg, float sb,
 		assert(N_ == initVal.m_info.numlabels_);
 		float * feature = new float[N_ * 3];
 		for (int j = 0; j < N_; j++){
-			feature[j * 3 + 0] = initVal.m_info.features_[j].mean_bgr_[2] / sr;
-			feature[j * 3 + 1] = initVal.m_info.features_[j].mean_bgr_[1] / sg;
-			feature[j * 3 + 2] = initVal.m_info.features_[j].mean_bgr_[0] / sb;
+			//feature[j * 3 + 0] = initVal.m_info.features_[j].mean_bgr_[2] / sr;
+			//feature[j * 3 + 1] = initVal.m_info.features_[j].mean_bgr_[1] / sg;
+			//feature[j * 3 + 2] = initVal.m_info.features_[j].mean_bgr_[0] / sb;
 		}
 		addPairwiseEnergy(feature, 3, w, function);
 		delete[] feature;

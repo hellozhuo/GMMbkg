@@ -2,14 +2,18 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include<fstream>
 
 #include "PictureHandler.h"
 #include "SLIC.h"
 #include"InitValue.h"
 #include"FineValue.h"
 #include"Automata.h"
-
+#include"direct.h"
 #include<opencv2/opencv.hpp>
+
+#include<chrono>
+using namespace std::chrono;
 
 void beshowable(cv::Mat& illmor, std::string jpgname = "", bool wr = false)
 {
@@ -25,101 +29,50 @@ void beshowable(cv::Mat& illmor, std::string jpgname = "", bool wr = false)
 	cv::merge(illmors, illmor);
 }
 
-//int main()//5
-//{
-//	cv::Mat 
-//}
-
-//using namespace Gdiplus;
-//using namespace std;
-int main4()//4
+std::vector<std::string> fileList(std::string dirroot, std::string ext)
 {
-	cv::Mat_<float> ma = cv::Mat_<float>::zeros(4, 4);
-	cv::Mat re;
-	ma(0, 2) = 1;
-	ma(2, 2) = 3;
-	ma(0, 0) = 0.88;
-	ma(3, 2) = 2;
-	ma(3, 1) = 0.5;
-	re = cv::Mat::diag(ma.diag());
-	//re = ma.diag();
-	std::cout << ma << std::endl;
-	std::cout << re << std::endl;
-
-	//re = cv::Mat::ones(4, 1, CV_32F) * 2;
-	//re = cv::Mat::diag(re);
-	//std::cout << std::endl << re << std::endl;
-	//ma = re*ma;
-	//std::cout << std::endl << ma;
-	//cv::reduce(ma, re, 1, CV_REDUCE_SUM);
-	//re = ma > 0;
-	//re /= 255;
-	//int s = cv::sum(re)[0];
-	//auto tp = re.type();
-	//std::cout << "num: " << s << std::endl;
-	std::cin.get();
-	return 0;
-}
-
-int main3()//3
-{
-	//string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\Imgs\\77.jpg";
-	string filebase = "E:\\lab\\C_C++\\semantic-segmentation\\salient\\images\\0021.jpg";
-	cv::Mat img = cv::imread(filebase);
-	cv::Mat fstimg;
-	cv::Rect rect;
-	bool isrm = InitValue::removeFrame(img, fstimg, rect);
-	//InitValue::enhanceWithGuidedFilter(img, fstimg);
-	//cv::Mat imga;
-	//cv::cvtColor(img, imga, CV_BGR2BGRA);
-	//std::vector<cv::Mat> mv;
-	//cv::split(imga, mv);
-	//mv.pop_back();
-	//cv::Mat a;
-	//cv::merge(mv, a);
-	cv::imshow("original", img);
-	//cv::imshow("a", a);
-	cv::imshow("fstimg", fstimg);
-	cv::waitKey(0);
-	return 0;
-}
-
-int main2()//2
-{
-	while (1)
+	WIN32_FIND_DATAA fileFindData;
+	std::string nameW = dirroot + ext;
+	std::string filename;
+	int fileindex(0);
+	std::vector<std::string> jpglist;
+	jpglist.reserve(1000);
+	HANDLE hFind = ::FindFirstFileA(nameW.c_str(), &fileFindData);
+	if (hFind == INVALID_HANDLE_VALUE)
 	{
-		std::string jpgname;
-		std::cout << "\nplease input jpg number" << std::endl;
-		std::cin >> jpgname;
-		if (jpgname == "q") break;
-		//std::string jpgname = "137";
-		string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\guided_filter\\";
-		//string filebase = "E:\\lab\\C_C++\\semantic-segmentation\\salient\\images\\";
-		string pic = filebase + jpgname + ".jpg";
-		string picout = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\hisgoEqua2\\" + jpgname + ".jpg";
-
-		cv::Mat img = cv::imread(pic);
-		cv::Mat outImg;
-		std::vector<cv::Mat> mv, outMv(3);
-		cv::split(img, mv);
-		for (int i = 0; i < 3; i++)
-		{
-			cv::equalizeHist(mv[i], outMv[i]);
-		}
-		cv::merge(outMv, outImg);
-		bool res = cv::imwrite(picout, outImg);
-		std::cout << "finished "<<res<<" : " << jpgname;
-		//cv::imshow("original", img);
-		//cv::imshow("after histogram equalization", outImg);
-		//cv::waitKey(0);
+		return jpglist;
 	}
-	return 0;
+	do{
+		if (fileFindData.cFileName[0] == '.')
+			continue; // filter the '..' and '.' in the path
+		if (fileFindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			continue; // Ignore sub-folders
 
+		filename = fileFindData.cFileName;
+		jpglist.push_back(filename);
+	} while (::FindNextFileA(hFind, &fileFindData));
+	FindClose(hFind);
+	return jpglist;
 }
+
 
 int main()//1
 {
-	while (1){
+	std::string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\ecssd_images\\";
+	std::string fileload = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\ECSSD_PGMM700\\";
+	//std::string fileload2 = "..\\..\\ECSSD_AUTO700\\";
+	_mkdir(fileload.c_str());
+	//_mkdir(fileload2.c_str());
+	//std::string record = "E:\\lab\\C_C++\\saliency-detection\\DUTOMRON_RESULTS\\DUTOMRON_GMMbkg_t.txt";
+	std::vector<std::string> jpglist = fileList(filebase, "*.jpg");
+	const int N = jpglist.size();
+	assert(N > 1);
+	time_point<high_resolution_clock> m_begin;
+	m_begin = high_resolution_clock::now();
+	int autocount_ = 0;
+	for (int jpgid = 0; jpgid < N; jpgid++)
+	{
+		//bool useauto = false;
 	InitValue initval;
 	//_w1, _w2, _w3, _alpha, _beta, _gama, _mu
 	//appearance: w1 alpha beta , combine color(alpha) and location(beta)
@@ -138,23 +91,25 @@ int main()//1
 	//FineValue fineval(10/*w1*/, 3/*w2*/, 3/*w3*/, 80/*color(alpha)*/,
 	//	30/*location(beta)*/, 30/*smoothness*/, 4/*similarity*/, 4);
 	cv::Mat unaryMap, unaFuse;
-	std::string jpgname;
-	std::cout << "\nplease input jpg number" << std::endl;
-	std::cin >> jpgname;
-	if (jpgname == "q") break;
+	//std::string jpgname;
+	//std::cout << "\nplease input jpg number" << std::endl;
+	//std::cin >> jpgname;
+	//if (jpgname == "q") break;
 	//std::string jpgname = "137";
 	//string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\Imgs\\";
 	//string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\prob\\";
-	string filebase = "E:\\lab\\C_C++\\semantic-segmentation\\salient\\images\\";
-	string pic = filebase + jpgname + ".jpg";
+	
+	//string pic = filebase + jpgname + ".jpg";
+	std::string pic = filebase + jpglist[jpgid];
+	std::string picload = fileload + jpglist[jpgid].substr(0, jpglist[jpgid].length() - 4) + ".png";
+	//std::string picload2 = fileload2 + jpglist[jpgid].substr(0, jpglist[jpgid].length() - 4) + ".png";
 	cv::Mat img = cv::imread(pic);
 	//cv::Mat img;
 	//InitValue::enhanceWithGuidedFilter(img_ori, img);
 	cv::Mat imgrm;
 	cv::Rect rect;
 	bool rm = InitValue::removeFrame(img, imgrm, rect);
-	//bool rm = false;
-	initval.GetBgvalue(unaryMap, unaFuse, imgrm, true);
+	initval.GetBgvalue(unaryMap, unaFuse, imgrm, false);
 
 
 	cv::Mat illmor;
@@ -162,38 +117,66 @@ int main()//1
 
 	cv::Mat fineMap;
 	fineval.getFineVal(initval, illmor, fineMap);
+
 	Automata automata;
-	//automata.work(illmor, initval, fineMap);
-	
-	if (rm)
+	double ithres = cv::mean(fineMap)[0];
+	cv::Mat upsal = fineMap > 0.5;
+	float nUp = cv::sum(upsal / 255)[0];
+	float rt = 0.045;
+	if (nUp > rt*fineMap.size().area())
 	{
-		cv::Mat tmat;
-		tmat = cv::Mat::zeros(img.size(), CV_32F);
-		illmor.copyTo(tmat(rect));
-		illmor = tmat;
-		cv::Mat tmat2;
-		tmat2 = cv::Mat::zeros(img.size(), CV_32F);
-		fineMap.copyTo(tmat2(rect));
-		fineMap = tmat2;
-	}
-	//InitValue::morphSmooth(fineMap, fineMap);
+		//std::cout << "\tautomata" << std::endl;
+		autocount_++;
+		//useauto = true;
+		//automata.work(illmor, initval, fineMap);
+		if (rm)
+		{
+			cv::Mat tmat;
+			tmat = cv::Mat::zeros(img.size(), CV_32F);
+			illmor.copyTo(tmat(rect));
+			illmor = tmat;
+		}
+		illmor.convertTo(illmor, CV_8U, 255);
+		cv::imwrite(picload, illmor);
+	}	
 
+	//if (rm)
+	//{
+	//	//cv::Mat tmat;
+	//	//tmat = cv::Mat::zeros(img.size(), CV_32F);
+	//	//illmor.copyTo(tmat(rect));
+	//	//illmor = tmat;	
+	//	cv::Mat tmat1;
+	//	tmat1 = cv::Mat::zeros(img.size(), CV_32F);
+	//	fineMap.copyTo(tmat1(rect));
+	//	fineMap = tmat1;
+	//}
 	
-	cv::Mat IMGSHOW = cv::Mat::zeros(2 * img.rows + 5, 2 * img.cols + 5, CV_8UC3);
-	img.copyTo(IMGSHOW(cv::Rect(0, 0, img.cols, img.rows)));
+	//fineMap.convertTo(fineMap, CV_8U, 255);
+	//cv::imwrite(picload, fineMap);
 	
-	//img.copyTo(IMGSHOW(cv::Rect(img.cols + 4, 0, img.cols, img.rows)));
+	//cv::Mat IMGSHOW = cv::Mat::zeros(2 * img.rows + 5, 2 * img.cols + 5, CV_8UC3);
+	//img.copyTo(IMGSHOW(cv::Rect(0, 0, img.cols, img.rows)));
 
+	//beshowable(illmor);
+	//illmor.copyTo(IMGSHOW(cv::Rect(0, img.rows + 4, illmor.cols, illmor.rows)));
 
-	beshowable(illmor);// , "E:\\lab\\C_C++\\saliency-detection\\code\\automata\\priormap\\0003.png", true);
-	illmor.copyTo(IMGSHOW(cv::Rect(0, img.rows + 4, illmor.cols, illmor.rows)));
+	//beshowable(fineMap);
+	//fineMap.copyTo(IMGSHOW(cv::Rect(img.cols + 4, img.rows + 4, fineMap.cols, fineMap.rows)));
 
-	beshowable(fineMap);
-	fineMap.copyTo(IMGSHOW(cv::Rect(img.cols + 4, img.rows + 4, fineMap.cols, fineMap.rows)));
-
-	cv::imshow("original adn results", IMGSHOW);
-	cv::waitKey(0);
+	//cv::imshow("original adn results", IMGSHOW);
+	//cv::waitKey(0);
 	}
+	int64_t dur = duration_cast<milliseconds>(high_resolution_clock::now() - m_begin).count();
+	int64_t avedur = dur / jpglist.size();
+	std::cout << "automata : " << autocount_ << " times" << std::endl;
+	std::cout << "finished with average time: "<< avedur <<" milliseconds" << std::endl;
+	//std::ofstream fil(record);
+	//fil << "automata : " << autocount_ << " times" << std::endl;
+	//fil << "finished with average time: " << avedur << " milliseconds" << std::endl;
+	//fil.close();
+	std::cin.get();
+
 	return 0;
 
 }
@@ -204,13 +187,14 @@ int main0()//0
 	vector<string> picvec(0);
 	picvec.resize(0);
 	//GetPictures(picvec);//user chooses one or more pictures
-	string pic = "..\\..\\MSRA10K_Imgs_GT\\Imgs\\101.jpg";
-	string saveLocation = "..\\..\\result\\";
+	string pic = "..\\..\\ecssd_images\\0004.jpg";
+	string saveLocation = "..\\..\\superpixel\\";
 	//BrowseForFolder(saveLocation);
+	_mkdir(saveLocation.c_str());
 
 	int numPics(picvec.size());
 
-	int m_spcount = 200;
+	int m_spcount = 300;
 	double m_compactness = 20.0;
 
 	for (int k = 0; k < 1; k++)
@@ -232,9 +216,6 @@ int main0()//0
 			*(buf++) = (unsigned char)(*(imgbuf + i * 4 + 1));//g
 			*(buf++) = (unsigned char)(*(imgbuf + i * 4 + 2));//r
 		}
-		cv::imshow("hehe", im);
-		cv::waitKey(0);
-		return 0;
 
 		int sz = width*height;
 		//---------------------------------------------------------
@@ -246,11 +227,11 @@ int main0()//0
 		SLIC slic;
 		slic.DoSuperpixelSegmentation_ForGivenNumberOfSuperpixels(img, width, height, labels, numlabels, m_spcount, m_compactness);
 		//slic.DoSuperpixelSegmentation_ForGivenSuperpixelSize(img, width, height, labels, numlabels, 10, m_compactness);//demo
-		//slic.DrawContoursAroundSegments(img, labels, width, height, 0);
+		slic.DrawContoursAroundSegments(img, labels, width, height, 0);
 		
 		if (labels) delete[] labels;
 
-		//picHand.SavePicture(img, width, height, pic, saveLocation, 1, "_SLIC");// 0 is for BMP and 1 for JPEG)
+		picHand.SavePicture(img, width, height, pic, saveLocation, 1, "_SLIC");// 0 is for BMP and 1 for JPEG)
 		if (img) delete[] img;
 	}
 	std::cout << "finished" << std::endl;
