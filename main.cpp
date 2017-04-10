@@ -59,7 +59,7 @@ std::vector<std::string> fileList(std::string dirroot, std::string ext)
 int main()//1
 {
 	std::string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\ecssd_images\\";
-	std::string fileload = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\ECSSD_PGMM700\\";
+	std::string fileload = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\ECSSD_GMMbkg1000\\";
 	//std::string fileload2 = "..\\..\\ECSSD_AUTO700\\";
 	_mkdir(fileload.c_str());
 	//_mkdir(fileload2.c_str());
@@ -123,37 +123,28 @@ int main()//1
 	cv::Mat upsal = fineMap > 0.5;
 	float nUp = cv::sum(upsal / 255)[0];
 	float rt = 0.045;
-	if (nUp > rt*fineMap.size().area())
+	if (nUp <= rt*fineMap.size().area())
 	{
 		//std::cout << "\tautomata" << std::endl;
 		autocount_++;
 		//useauto = true;
-		//automata.work(illmor, initval, fineMap);
-		if (rm)
-		{
-			cv::Mat tmat;
-			tmat = cv::Mat::zeros(img.size(), CV_32F);
-			illmor.copyTo(tmat(rect));
-			illmor = tmat;
-		}
-		illmor.convertTo(illmor, CV_8U, 255);
-		cv::imwrite(picload, illmor);
+		automata.work(illmor, initval, fineMap);
 	}	
 
-	//if (rm)
-	//{
-	//	//cv::Mat tmat;
-	//	//tmat = cv::Mat::zeros(img.size(), CV_32F);
-	//	//illmor.copyTo(tmat(rect));
-	//	//illmor = tmat;	
-	//	cv::Mat tmat1;
-	//	tmat1 = cv::Mat::zeros(img.size(), CV_32F);
-	//	fineMap.copyTo(tmat1(rect));
-	//	fineMap = tmat1;
-	//}
+	if (rm)
+	{
+		//cv::Mat tmat;
+		//tmat = cv::Mat::zeros(img.size(), CV_32F);
+		//illmor.copyTo(tmat(rect));
+		//illmor = tmat;	
+		cv::Mat tmat1;
+		tmat1 = cv::Mat::zeros(img.size(), CV_32F);
+		fineMap.copyTo(tmat1(rect));
+		fineMap = tmat1;
+	}
 	
-	//fineMap.convertTo(fineMap, CV_8U, 255);
-	//cv::imwrite(picload, fineMap);
+	fineMap.convertTo(fineMap, CV_8U, 255);
+	cv::imwrite(picload, fineMap);
 	
 	//cv::Mat IMGSHOW = cv::Mat::zeros(2 * img.rows + 5, 2 * img.cols + 5, CV_8UC3);
 	//img.copyTo(IMGSHOW(cv::Rect(0, 0, img.cols, img.rows)));
