@@ -1,3 +1,7 @@
+//Author: Zhuo Su, in Beihang University (BUAA)
+//date: 04/2017
+
+
 
 #include"Automata.h"
 #include<fstream>

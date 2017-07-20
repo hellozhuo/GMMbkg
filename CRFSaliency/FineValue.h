@@ -1,3 +1,6 @@
+//Author: Zhuo Su, in Beihang University (BUAA)
+//date: 04/2017
+
 #pragma once
 
 #include"InitValue.h"

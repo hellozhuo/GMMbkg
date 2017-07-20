@@ -1,3 +1,6 @@
+//Author: Zhuo Su, in Beihang University (BUAA), Revision of GrabCutMF.h from: https://github.com/MingMingCheng
+//date: 04/2017
+
 #pragma once
 #include "DenseCRF.h"
 #include"CmGMM.h"

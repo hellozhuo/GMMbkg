@@ -1,3 +1,7 @@
+//Author: Zhuo Su, in Beihang University (BUAA)
+//date: 04/2017
+
+
 #include"InitValue.h"
 #include"permutohedral.h"
 #include"vincent11.c"
