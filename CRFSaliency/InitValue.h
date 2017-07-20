@@ -28,6 +28,7 @@ public:
 
 	static bool removeFrame(const cv::Mat& inImg, cv::Mat& outImg, cv::Rect &roi);
 
+	void enhance(cv::Mat& unaryMap, double fct = 1.8);
 
 private:
 	void getIdxs(bool indx2 = false);
@@ -38,7 +39,7 @@ private:
 	void getSalFromClusteredBorder(cv::Mat& unaryMap, bool illustrate = false);
 
 	void getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, bool usePixel);
-	void enhance(cv::Mat& unaryMap, double fct = 1.8);
+	
 
 	void fuseSpatial(cv::Mat& unaryMap, cv::Mat& unaFuse, const std::string& pic);
 

@@ -501,7 +501,7 @@ void InitValue::getSalFromGmmBorder(cv::Mat& unaryMap, cv::Mat& unaFuse, bool us
 		unaryMap = illu;
 	}
 	
-	enhance(unaryMap);
+	//enhance(unaryMap);
 	//fuseSpatial(unaryMap, unaFuse, pic);
 	//enhance(unaFuse, 1.0);
 

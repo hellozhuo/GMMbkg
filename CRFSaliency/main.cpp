@@ -58,19 +58,20 @@ std::vector<std::string> fileList(std::string dirroot, std::string ext)
 
 int main()//1
 {
-	std::string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\ecssd_images\\";
-	std::string fileload = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\ECSSD_GMMbkg1000\\";
+	std::string filebase = "..\\imgs\\";
+	//std::string fileload = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\yanshi\\";
 	//std::string fileload2 = "..\\..\\ECSSD_AUTO700\\";
-	_mkdir(fileload.c_str());
+	//_mkdir(fileload.c_str());
 	//_mkdir(fileload2.c_str());
 	//std::string record = "E:\\lab\\C_C++\\saliency-detection\\DUTOMRON_RESULTS\\DUTOMRON_GMMbkg_t.txt";
-	std::vector<std::string> jpglist = fileList(filebase, "*.jpg");
-	const int N = jpglist.size();
-	assert(N > 1);
-	time_point<high_resolution_clock> m_begin;
-	m_begin = high_resolution_clock::now();
+	//std::vector<std::string> jpglist = fileList(filebase, "*.jpg");
+	//const int N = jpglist.size();
+	//assert(N > 1);
+	//time_point<high_resolution_clock> m_begin;
+	//m_begin = high_resolution_clock::now();
 	int autocount_ = 0;
-	for (int jpgid = 0; jpgid < N; jpgid++)
+	//for (int jpgid = 0; jpgid < 1; jpgid++)
+	while (1)
 	{
 		//bool useauto = false;
 	InitValue initval;
@@ -100,8 +101,13 @@ int main()//1
 	//string filebase = "E:\\lab\\C_C++\\saliency-detection\\code\\SuZhuo\\MSRA10K_Imgs_GT\\prob\\";
 	
 	//string pic = filebase + jpgname + ".jpg";
-	std::string pic = filebase + jpglist[jpgid];
-	std::string picload = fileload + jpglist[jpgid].substr(0, jpglist[jpgid].length() - 4) + ".png";
+	//std::string pic = filebase + jpglist[jpgid];
+	std::string jname;
+	std::cin >> jname;
+	if (jname == "q") break;
+
+	//std::string picload = fileload + jpglist[jpgid].substr(0, jpglist[jpgid].length() - 4) + ".png";
+	std::string pic = filebase + jname + ".jpg";
 	//std::string picload2 = fileload2 + jpglist[jpgid].substr(0, jpglist[jpgid].length() - 4) + ".png";
 	cv::Mat img = cv::imread(pic);
 	//cv::Mat img;
@@ -111,9 +117,19 @@ int main()//1
 	bool rm = InitValue::removeFrame(img, imgrm, rect);
 	initval.GetBgvalue(unaryMap, unaFuse, imgrm, false);
 
+	//cv::imshow("before enhance", unaryMap);
+	//cv::waitKey(0);
+	unaFuse = unaryMap.clone();
+
+	initval.enhance(unaryMap);
+	//cv::imshow("after enhance", unaryMap);
+	//cv::waitKey(0);
 
 	cv::Mat illmor;
 	InitValue::morphSmooth(unaryMap,illmor);
+
+	//cv::imshow("illmor", illmor);
+	//cv::waitKey(0);
 
 	cv::Mat fineMap;
 	fineval.getFineVal(initval, illmor, fineMap);
@@ -144,7 +160,24 @@ int main()//1
 	}
 	
 	fineMap.convertTo(fineMap, CV_8U, 255);
-	cv::imwrite(picload, fineMap);
+	//unaryMap.convertTo(unaryMap, CV_8U, 255);
+	//unaFuse.convertTo(unaFuse, CV_8U, 255);
+	//illmor.convertTo(illmor, CV_8U, 255);
+
+	//imwrite(fileload + jname + "_before.png", unaFuse);
+	//imwrite(fileload + jname + "_after.png", unaryMap);
+	//imwrite(fileload + jname + "_illmor.png", illmor);
+	//imwrite(fileload + jname + "_GMMbkg.png", fineMap);
+	cv::imshow("GMMbkg", fineMap);
+	cv::waitKey(0);
+	//std::cout << "finish " << jname << std::endl;
+	//cv::Mat yanshi = cv::Mat::zeros(unaryMap.rows, 3 * unaryMap.cols + 10, CV_8U);
+	//unaFuse.copyTo(yanshi(cv::Rect(0, 0, unaFuse.cols, unaFuse.rows)));
+	//unaryMap.copyTo(yanshi(cv::Rect(unaFuse.cols + 4, 0, unaryMap.cols, unaryMap.rows)));
+	//illmor.copyTo(yanshi(cv::Rect(2 * unaryMap.cols + 8, 0, illmor.cols, illmor.rows)));
+	//cv::imshow("yanshi", yanshi);
+	//cv::waitKey(0);
+	//cv::imwrite(picload, fineMap);
 	
 	//cv::Mat IMGSHOW = cv::Mat::zeros(2 * img.rows + 5, 2 * img.cols + 5, CV_8UC3);
 	//img.copyTo(IMGSHOW(cv::Rect(0, 0, img.cols, img.rows)));
@@ -158,10 +191,10 @@ int main()//1
 	//cv::imshow("original adn results", IMGSHOW);
 	//cv::waitKey(0);
 	}
-	int64_t dur = duration_cast<milliseconds>(high_resolution_clock::now() - m_begin).count();
-	int64_t avedur = dur / jpglist.size();
-	std::cout << "automata : " << autocount_ << " times" << std::endl;
-	std::cout << "finished with average time: "<< avedur <<" milliseconds" << std::endl;
+	//int64_t dur = duration_cast<milliseconds>(high_resolution_clock::now() - m_begin).count();
+	//int64_t avedur = dur / jpglist.size();
+	//std::cout << "time : " << dur << " milliseconds" << std::endl;
+	//std::cout << "finished with average time: "<< avedur <<" milliseconds" << std::endl;
 	//std::ofstream fil(record);
 	//fil << "automata : " << autocount_ << " times" << std::endl;
 	//fil << "finished with average time: " << avedur << " milliseconds" << std::endl;
